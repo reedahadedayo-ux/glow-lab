@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shop Authentic Skincare Products | GlowLab Nigeria</title>
+  <meta name="description" content="Shop 12+ authentic skincare products from CeraVe, Cetaphil, La Roche-Posay, The Ordinary, Beauty of Joseon. Nationwide delivery in Nigeria." />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <nav class="nav">
+    <div class="container nav-inner">
+      <a href="index.html" class="logo"><span class="logo-mark">G</span> GlowLab <span>Skincare</span></a>
+      <div class="nav-links"><a href="index.html">Home</a><a href="products.html">Products</a><a href="about.html">About</a><a href="faq.html">FAQ</a><a href="contact.html">Contact</a></div>
+      <div class="nav-actions"><button class="btn btn-sage" data-chat-lumi>Chat With Lumi</button><button class="mobile-toggle" id="mobileToggle" aria-label="Toggle menu" aria-expanded="false">☰</button></div>
+    </div>
+    <div class="mobile-menu" id="mobileMenu"><a href="index.html">Home</a><a href="products.html">Products</a><a href="about.html">About</a><a href="faq.html">FAQ</a><a href="contact.html">Contact</a><button class="btn btn-primary btn-lg" data-chat-lumi>💬 Chat With Lumi</button></div>
+  </nav>
+
+  <section class="section" style="padding-top:48px; padding-bottom:24px;">
+    <div class="container">
+      <div class="reveal">
+        <span class="eyebrow">Authentic • Dermatologist-Inspired • Beginner Friendly</span>
+        <h1 class="display" style="font-size:clamp(2rem,4vw,3.2rem); margin:14px 0 14px;">Shop Skincare for <em>Real Results</em></h1>
+        <p class="lead">12 hand-picked products from globally trusted brands. Need help choosing? Lumi can build a routine for your skin type in seconds.</p>
+      </div>
+      <div style="margin-top:32px; display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
+        <div class="filter-bar" style="margin:0;">
+          <button class="filter-btn active" data-filter="All">All Products</button>
+          <button class="filter-btn" data-filter="Cleansers">Cleansers</button>
+          <button class="filter-btn" data-filter="Serums">Serums</button>
+          <button class="filter-btn" data-filter="Moisturizers">Moisturizers</button>
+          <button class="filter-btn" data-filter="Sunscreens">Sunscreens</button>
+          <button class="filter-btn" data-filter="Exfoliants">Exfoliants</button>
+          <button class="filter-btn" data-filter="Treatments">Treatments</button>
+        </div>
+        <button class="btn btn-secondary" data-chat-lumi style="margin-left:auto;">✨ Need a recommendation? Ask Lumi</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section-cream" style="padding-top:28px;">
+    <div class="container">
+      <div class="product-grid" id="allProductsGrid"></div>
+      <div class="reveal" style="background:white; border:1px solid var(--border); border-radius:24px; padding:28px; margin-top:56px; display:grid; grid-template-columns: 1fr auto; gap:24px; align-items:center;">
+        <div>
+          <h3 style="font-size:1.3rem;">Not sure where to start?</h3>
+          <p style="color:var(--text-muted); margin-top:6px; max-width:54ch;">Tell Lumi your skin type (oily, dry, sensitive, combo) + main concern (acne, hyperpigmentation, dryness). She'll build a simple AM/PM routine in under 60 seconds.</p>
+        </div>
+        <button class="btn btn-primary btn-lg" data-chat-lumi>Chat With Lumi →</button>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid"><div><a href="index.html" class="logo" style="margin-bottom:14px;"><span class="logo-mark">G</span> GlowLab <span>Skincare</span></a><p style="max-width:34ch; margin-top:12px;">Modern skincare store based in Lagos. Curated products + AI guidance.</p><div class="socials"><a href="#">IG</a><a href="#">IN</a><a href="#">TT</a></div></div><div><h4>Shop</h4><div class="footer-links"><a href="products.html">All Products</a><a href="#">Cleansers</a><a href="#">Serums</a><a href="#">Sunscreens</a></div></div><div><h4>Help</h4><div class="footer-links"><a href="faq.html">FAQs</a><a href="contact.html">Contact</a><a href="#">Privacy</a><a href="#">Terms</a></div></div><div><h4>Contact</h4><div class="footer-links"><span>Lagos, Nigeria</span><span>hello@glowlab.ng</span><span>+234 801 234 5678</span></div></div></div>
+      <div class="footer-bottom"><span>© <span id="year"></span> GlowLab Skincare.</span><span>Portfolio demo • NGN</span></div>
+      <div class="footer-note">GlowLab Skincare is a fictional brand created to demonstrate an AI-powered customer support and product recommendation system.</div>
+    </div>
+  </footer>
+
+  <!-- Modal reused -->
+  <div class="modal-backdrop" id="productModal" aria-hidden="true"><div class="modal"><button class="modal-close" data-close-modal aria-label="Close">✕</button><div class="modal-grid"><div class="modal-img"><img id="modalImg" src="" alt="" /></div><div class="modal-body"><div style="font-size:0.72rem; letter-spacing:0.12em; text-transform:uppercase; font-weight:700; color:var(--text-light);" id="modalBrand"></div><h2 id="modalName" style="font-size:1.4rem; margin:8px 0 10px; line-height:1.25;"></h2><div id="modalPrice" style="font-weight:700; font-size:1.15rem; margin-bottom:14px;"></div><p id="modalDesc" style="color:var(--text-muted); font-size:0.96rem; line-height:1.6; margin-bottom:18px;"></p><div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:18px;"><div style="background:var(--warm-cream); padding:12px 14px; border-radius:12px; border:1px solid var(--warm-cream-border);"><small style="display:block; font-size:0.7rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-light); font-weight:700;">Skin Type</small><strong id="modalSkin" style="font-size:0.9rem;"></strong></div><div style="background:var(--sage-lighter); padding:12px 14px; border-radius:12px; border:1px solid #dde8df;"><small style="display:block; font-size:0.7rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--sage-dark); font-weight:700;">Concern</small><strong id="modalConcern" style="font-size:0.9rem;"></strong></div></div><div style="margin-bottom:16px;"><small style="font-weight:700; font-size:0.8rem; letter-spacing:0.08em; text-transform:uppercase;">How to use</small><p id="modalHowTo" style="font-size:0.9rem; margin-top:6px; color:var(--text-muted);"></p></div><div style="margin-bottom:20px;"><small style="font-weight:700; font-size:0.8rem; letter-spacing:0.08em; text-transform:uppercase;">Key Ingredients</small><ul id="modalIngredients" style="margin-top:8px; display:flex; flex-wrap:wrap; gap:8px; list-style:none;"></ul></div><div style="display:flex; gap:10px;"><button class="btn btn-primary" style="flex:1;" data-chat-lumi>Ask Lumi about this →</button><button class="btn btn-secondary" data-close-modal>Close</button></div><p style="font-size:0.78rem; color:var(--text-light); margin-top:12px;">Category: <span id="modalCategory"></span> • 7-day returns if unopened</p></div></div></div></div>
+  <button id="backToTop">↑</button><div class="toast" id="toast">Hello</div>
+  <script src="js/script.js"></script>
+</body>
+</html>
