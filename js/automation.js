@@ -1,7 +1,13 @@
 /* GlowLab Skincare - Automation Dashboard, Airtable View & Test Suite Controller (js/automation.js) */
 
 (function () {
+  const VERCEL_PROD_ORIGIN = 'https://glow-lab-puce.vercel.app';
   let latestSnapshot = null;
+
+  function isLocalOrSandboxPreview() {
+    const host = window.location.hostname || '';
+    return host !== 'glow-lab-puce.vercel.app' && !host.endsWith('.vercel.app');
+  }
 
   function pillClassForStatus(status) {
     const s = String(status || '').toLowerCase();
@@ -163,10 +169,19 @@
   }
 
   async function triggerRowStep(checkoutId, stepNum) {
+    const chk = latestSnapshot && Array.isArray(latestSnapshot.checkouts)
+      ? latestSnapshot.checkouts.find(c => c.id === checkoutId)
+      : null;
+
     const res = await fetch('/api/events', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'advance_recovery', checkout_id: checkoutId, step: stepNum })
+      body: JSON.stringify({
+        action: 'advance_recovery',
+        checkout_id: checkoutId,
+        checkout_snapshot: chk,
+        step: stepNum
+      })
     });
     const data = await res.json();
     if (res.ok) {
@@ -176,16 +191,118 @@
   }
 
   async function triggerRowPurchase(checkoutId) {
+    const chk = latestSnapshot && Array.isArray(latestSnapshot.checkouts)
+      ? latestSnapshot.checkouts.find(c => c.id === checkoutId)
+      : null;
+
+    const payload = { checkout_id: checkoutId, checkout_snapshot: chk };
     const res = await fetch('/api/purchase', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ checkout_id: checkoutId })
+      body: JSON.stringify(payload)
     });
     const data = await res.json();
+
+    if (isLocalOrSandboxPreview()) {
+      try {
+        await fetch(`${VERCEL_PROD_ORIGIN}/api/purchase`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+      } catch {}
+    }
+
     if (res.ok) {
       showToast(`Simulated Order ${data.order_number} created! Pending reminders suppressed.`, 4000);
       loadDashboard();
     }
+  }
+
+  function initLiveMakePingButton() {
+    const btn = document.getElementById('sendLiveMakePingBtn');
+    const banner = document.getElementById('makePingResultBanner');
+    if (!btn) return;
+
+    btn.addEventListener('click', async () => {
+      const orig = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = '📡 Sending Event to Make.com...';
+
+      const payload = {
+        cart_id: `cart_ping_${Date.now().toString().slice(-6)}`,
+        customer_name: 'Adaeze Okafor (Live Make Test)',
+        customer_email: `adaeze.maketest.${Date.now().toString().slice(-4)}@glowlab-demo.ng`,
+        customer_phone: '+234 803 555 0192',
+        delivery_state: 'Lagos',
+        delivery_address: '14B Admiralty Way, Lekki Phase 1, Lagos',
+        marketing_consent: true,
+        items: [
+          { product_id: 'cerave-foaming', quantity: 1 },
+          { product_id: 'boj-relief-sun', quantity: 1 },
+          { product_id: 'ordinary-niacinamide', quantity: 1 }
+        ],
+        idempotency_key: `chk_make_ping_${Date.now()}`
+      };
+
+      try {
+        // Always hit local endpoint first so local dashboard updates
+        const localRes = await fetch('/api/checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        let resultData = await localRes.json();
+
+        // If running inside Arena Live Preview, also call the live Vercel production endpoint so Make.com receives the webhook
+        if (isLocalOrSandboxPreview() && !resultData.make_dispatched) {
+          const prodRes = await fetch(`${VERCEL_PROD_ORIGIN}/api/checkout`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              ...payload,
+              idempotency_key: `${payload.idempotency_key}_prod`
+            })
+          });
+          resultData = await prodRes.json();
+        }
+
+        btn.disabled = false;
+        btn.textContent = orig;
+        loadDashboard();
+
+        if (banner) {
+          banner.style.display = 'block';
+          if (resultData.make_dispatched) {
+            banner.style.background = '#ecfdf5';
+            banner.style.border = '1px solid #a7f3d0';
+            banner.style.color = '#065f46';
+            banner.innerHTML =
+              `<strong>✅ Make.com Webhook Delivered Successfully!</strong><br/>` +
+              `Event ID: <code>${resultData.event_id}</code> • Checkout ID: <code>${resultData.checkout_id}</code> • Total: <strong>₦39,500</strong><br/>` +
+              `Make Response: <code>HTTP ${resultData.make_response_code} — ${resultData.make_response_text || 'Accepted'}</code>`;
+          } else {
+            banner.style.background = '#fffbeb';
+            banner.style.border = '1px solid #fde68a';
+            banner.style.color = '#92400e';
+            banner.innerHTML =
+              `<strong>⚠️ Make.com Returned HTTP ${resultData.make_response_code || 'Error'}</strong><br/>` +
+              `Response from Make: <code>${resultData.make_response_text || resultData.error_message || 'No scenario listening'}</code>.<br/>` +
+              `<em>Tip: In Make.com, click <strong>"Redetermine data structure"</strong> on your Custom Webhook module (or turn the scenario ON / click "Run once"), then click this button again.</em>`;
+          }
+        }
+        showToast(
+          resultData.make_dispatched
+            ? `Make.com accepted webhook (${resultData.event_id})! 🎉`
+            : `Make returned HTTP ${resultData.make_response_code}: check banner for details`,
+          4500
+        );
+      } catch (err) {
+        btn.disabled = false;
+        btn.textContent = orig;
+        showToast(`Failed to send test webhook: ${err.message}`, 4000);
+      }
+    });
   }
 
   function initTestRunner() {
@@ -201,6 +318,15 @@
         body: JSON.stringify({ scenario })
       });
       const data = await res.json();
+
+      // Also relay to Vercel production if running inside the Arena Live Preview so Make receives the live events
+      if (isLocalOrSandboxPreview()) {
+        fetch(`${VERCEL_PROD_ORIGIN}/api/test-scenarios`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ scenario })
+        }).catch(() => {});
+      }
 
       if (data.snapshot) {
         latestSnapshot = data.snapshot;
@@ -349,6 +475,7 @@
 
   document.addEventListener('DOMContentLoaded', () => {
     loadDashboard();
+    initLiveMakePingButton();
     initTestRunner();
     initEmailPreviewTabs();
     initCsvExport();

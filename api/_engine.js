@@ -1255,27 +1255,36 @@ async function startCheckout(payload, origin = '') {
   // 8. Dispatch to Make (or simulate workflow failure if requested for Test 6)
   let eventStatus = 'processed';
   let makeResponseCode = 200;
+  let makeResponseText = 'Simulated (No MAKE_CHECKOUT_STARTED_WEBHOOK_URL set)';
+  let makeDispatched = false;
   let errorMessage = null;
 
   if (simulate_workflow_failure) {
     eventStatus = 'failed';
     makeResponseCode = 503;
+    makeResponseText = 'Simulated HTTP 503 Service Unavailable';
     errorMessage = 'Simulated Make/Klaviyo webhook timeout (HTTP 503 Service Unavailable). Event queued in automation_events for safe retry.';
   } else if (process.env.MAKE_CHECKOUT_STARTED_WEBHOOK_URL) {
     try {
       const res = await fetch(process.env.MAKE_CHECKOUT_STARTED_WEBHOOK_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json, text/plain, */*'
+        },
         body: JSON.stringify(eventPayload)
       });
       makeResponseCode = res.status;
+      makeResponseText = (await res.text().catch(() => '')).trim() || res.statusText;
+      makeDispatched = res.ok;
       if (!res.ok) {
         eventStatus = 'failed';
-        errorMessage = `Make webhook returned HTTP ${res.status}`;
+        errorMessage = `Make webhook returned HTTP ${res.status}${makeResponseText ? `: ${makeResponseText}` : ''}`;
       }
     } catch (err) {
       eventStatus = 'failed';
       makeResponseCode = 502;
+      makeResponseText = err.message;
       errorMessage = `Make webhook network error: ${err.message}`;
     }
   }
@@ -1294,6 +1303,8 @@ async function startCheckout(payload, origin = '') {
     status: eventStatus,
     attempts: 1,
     make_response_code: makeResponseCode,
+    make_response_text: makeResponseText,
+    make_dispatched: makeDispatched,
     error_message: errorMessage,
     processed_at: eventStatus === 'processed' ? now : null,
     created_at: now,
@@ -1318,11 +1329,69 @@ async function startCheckout(payload, origin = '') {
       currency: 'NGN',
       marketing_consent: consentGiven,
       event_status: eventStatus,
+      make_webhook_configured: Boolean(process.env.MAKE_CHECKOUT_STARTED_WEBHOOK_URL),
+      make_dispatched: makeDispatched,
+      make_response_code: makeResponseCode,
+      make_response_text: makeResponseText,
       error_message: errorMessage,
       checkout: checkoutRecord,
       event: eventRecord
     }
   };
+}
+
+/**
+ * Hydrate a checkout snapshot into store if running across isolated serverless containers,
+ * re-validating all items against TRUSTED_PRODUCTS so prices/totals are never trusted from the client.
+ */
+function ensureCheckoutInStore(store, checkoutId, checkoutSnapshot) {
+  let checkout = store.checkouts.find(c => c.id === checkoutId);
+  if (checkout) return checkout;
+  if (!checkoutSnapshot || typeof checkoutSnapshot !== 'object') return null;
+
+  const rawItems = Array.isArray(checkoutSnapshot.item_summary)
+    ? checkoutSnapshot.item_summary.map(i => ({
+        product_id: i.product_id || i.id,
+        quantity: i.quantity || 1
+      }))
+    : [];
+
+  const validation = validateAndCalculateItems(rawItems);
+  if (!validation.valid) return null;
+
+  const now = new Date().toISOString();
+  checkout = {
+    id: checkoutId,
+    cart_id: checkoutSnapshot.cart_id || `cart_${crypto.randomUUID().slice(0, 12)}`,
+    customer_id: checkoutSnapshot.customer_id || `cust_${crypto.randomUUID().slice(0, 12)}`,
+    customer_email: String(checkoutSnapshot.customer_email || 'adaeze.okafor@glowlab-demo.ng').toLowerCase(),
+    customer_name: String(checkoutSnapshot.customer_name || 'Adaeze Okafor'),
+    customer_phone: String(checkoutSnapshot.customer_phone || '+234 803 555 0192'),
+    delivery_city: String(checkoutSnapshot.delivery_city || 'Lagos (VI / Lekki)'),
+    delivery_address: String(checkoutSnapshot.delivery_address || '14 Admiralty Way, Lekki Phase 1, Lagos'),
+    marketing_consent: checkoutSnapshot.marketing_consent !== false,
+    subtotal: validation.subtotal,
+    currency: 'NGN',
+    item_count: validation.itemCount,
+    item_summary: validation.items,
+    recovery_token: checkoutSnapshot.recovery_token || `rec_${crypto.randomUUID().replace(/-/g, '').slice(0, 20)}`,
+    recovery_url: checkoutSnapshot.recovery_url || `https://glow-lab-puce.vercel.app/checkout.html?recover_checkout=${encodeURIComponent(checkoutId)}`,
+    status: checkoutSnapshot.status || 'started',
+    purchase_status: checkoutSnapshot.purchase_status || 'unpaid',
+    first_reminder_status: checkoutSnapshot.first_reminder_status || (checkoutSnapshot.marketing_consent === false ? 'skipped_no_consent' : 'scheduled'),
+    first_reminder_sent_at: checkoutSnapshot.first_reminder_sent_at || null,
+    second_reminder_status: checkoutSnapshot.second_reminder_status || (checkoutSnapshot.marketing_consent === false ? 'skipped_no_consent' : 'scheduled'),
+    second_reminder_sent_at: checkoutSnapshot.second_reminder_sent_at || null,
+    recovery_outcome: checkoutSnapshot.recovery_outcome || (checkoutSnapshot.marketing_consent === false ? 'opted_out_no_emails' : 'in_progress'),
+    started_at: checkoutSnapshot.started_at || now,
+    abandoned_at: checkoutSnapshot.abandoned_at || null,
+    converted_at: checkoutSnapshot.converted_at || null,
+    created_at: checkoutSnapshot.created_at || now,
+    updated_at: now
+  };
+
+  store.checkouts.unshift(checkout);
+  return checkout;
 }
 
 /**
@@ -1332,6 +1401,7 @@ async function simulatePurchase(payload) {
   const store = loadStore();
   const {
     checkout_id,
+    checkout_snapshot,
     idempotency_key,
     simulate_workflow_failure = false
   } = payload || {};
@@ -1346,8 +1416,8 @@ async function simulatePurchase(payload) {
     };
   }
 
-  // 1. Verify checkout exists
-  const checkout = store.checkouts.find(c => c.id === checkout_id);
+  // 1. Verify checkout exists (or hydrate validated snapshot across serverless container instances)
+  const checkout = ensureCheckoutInStore(store, checkout_id, checkout_snapshot);
   if (!checkout) {
     return {
       status: 404,
@@ -1477,27 +1547,36 @@ async function simulatePurchase(payload) {
   // 7. Dispatch to Make & record result
   let eventStatus = 'processed';
   let makeResponseCode = 200;
+  let makeResponseText = 'Simulated (No MAKE_PLACED_ORDER_WEBHOOK_URL set)';
+  let makeDispatched = false;
   let errorMessage = null;
 
   if (simulate_workflow_failure) {
     eventStatus = 'failed';
     makeResponseCode = 503;
+    makeResponseText = 'Simulated HTTP 503 Service Unavailable';
     errorMessage = 'Simulated Make/Klaviyo Placed Order webhook failure (HTTP 503). Queued for retry.';
   } else if (process.env.MAKE_PLACED_ORDER_WEBHOOK_URL) {
     try {
       const res = await fetch(process.env.MAKE_PLACED_ORDER_WEBHOOK_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json, text/plain, */*'
+        },
         body: JSON.stringify(eventPayload)
       });
       makeResponseCode = res.status;
+      makeResponseText = (await res.text().catch(() => '')).trim() || res.statusText;
+      makeDispatched = res.ok;
       if (!res.ok) {
         eventStatus = 'failed';
-        errorMessage = `Make Placed Order webhook returned HTTP ${res.status}`;
+        errorMessage = `Make Placed Order webhook returned HTTP ${res.status}${makeResponseText ? `: ${makeResponseText}` : ''}`;
       }
     } catch (err) {
       eventStatus = 'failed';
       makeResponseCode = 502;
+      makeResponseText = err.message;
       errorMessage = `Make Placed Order webhook network error: ${err.message}`;
     }
   }
@@ -1516,6 +1595,8 @@ async function simulatePurchase(payload) {
     status: eventStatus,
     attempts: 1,
     make_response_code: makeResponseCode,
+    make_response_text: makeResponseText,
+    make_dispatched: makeDispatched,
     error_message: errorMessage,
     processed_at: eventStatus === 'processed' ? now : null,
     created_at: now,
@@ -1536,6 +1617,10 @@ async function simulatePurchase(payload) {
       event_id: eventId,
       recovery_outcome: recoveryOutcome,
       event_status: eventStatus,
+      make_webhook_configured: Boolean(process.env.MAKE_PLACED_ORDER_WEBHOOK_URL),
+      make_dispatched: makeDispatched,
+      make_response_code: makeResponseCode,
+      make_response_text: makeResponseText,
       error_message: errorMessage,
       order: orderRecord,
       checkout,
@@ -1548,9 +1633,9 @@ async function simulatePurchase(payload) {
  * Advance Klaviyo Abandoned-Cart Flow Step for a Checkout (Email 1 or Email 2)
  * Verifies marketing consent & checks whether Placed Order has occurred (purchase suppression).
  */
-function advanceRecoveryStep({ checkout_id, step }) {
+function advanceRecoveryStep({ checkout_id, checkout_snapshot, step }) {
   const store = loadStore();
-  const checkout = store.checkouts.find(c => c.id === checkout_id);
+  const checkout = ensureCheckoutInStore(store, checkout_id, checkout_snapshot);
 
   if (!checkout) {
     return { status: 404, body: { error: `Checkout "${checkout_id}" not found.` } };

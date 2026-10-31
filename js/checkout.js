@@ -1,8 +1,14 @@
 /* GlowLab Skincare - Checkout & Demo Purchase Simulation Controller (js/checkout.js) */
 
 (function () {
+  const VERCEL_PROD_ORIGIN = 'https://glow-lab-puce.vercel.app';
   let activeCheckout = null;
   let lastSubmittedPayload = null;
+
+  function isLocalOrSandboxPreview() {
+    const host = window.location.hostname || '';
+    return host !== 'glow-lab-puce.vercel.app' && !host.endsWith('.vercel.app');
+  }
 
   function renderOrderSummary() {
     if (!window.GlowLabCart) return;
@@ -112,6 +118,17 @@
     banner.innerHTML = msg;
   }
 
+  function formatMakeDiagnostic(data) {
+    if (!data) return '';
+    if (data.make_dispatched) {
+      return `<br/><strong>📡 Make.com Webhook:</strong> Dispatched live (<code>HTTP ${data.make_response_code || 200} ${data.make_response_text || 'Accepted'}</code>)`;
+    }
+    if (data.make_webhook_configured && !data.make_dispatched) {
+      return `<br/><strong>⚠️ Make.com Webhook Response:</strong> <code>HTTP ${data.make_response_code || 'Error'} — ${data.make_response_text || data.error_message || 'Ensure your Make scenario is ON or listening in Redetermine Data Structure mode'}</code>`;
+    }
+    return '';
+  }
+
   function updateSimulationPanel(data) {
     const panel = document.getElementById('simulationPanel');
     if (!panel) return;
@@ -165,6 +182,44 @@
     if (alertBanner && alertText) {
       alertBanner.style.display = 'block';
       alertText.textContent = `Welcome back, ${customerData.full_name || customerData.email}! Your cart (${customerData.recovered_checkout_id || 'saved session'}) has been restored from Supabase. You can complete your simulated purchase below.`;
+    }
+  }
+
+  function ensureDemoDefaultsReady() {
+    if (!window.GlowLabCart) return;
+    const params = new URLSearchParams(window.location.search);
+    const isRecovering = params.has('recover_checkout') || params.has('recovery_token') || params.has('cart_id');
+
+    // If cart is empty on initial visit to /checkout, auto-load the 3-product routine so 1-click checkout works immediately
+    const summary = window.GlowLabCart.getSummary();
+    if (!isRecovering && summary.items.length === 0) {
+      window.GlowLabCart.addItem('cerave-foaming', 1);
+      window.GlowLabCart.addItem('boj-relief-sun', 1);
+      window.GlowLabCart.addItem('ordinary-niacinamide', 1);
+      renderOrderSummary();
+    }
+
+    // Pre-fill default fictional customer if fields are blank
+    const nameInput = document.getElementById('chkName');
+    const emailInput = document.getElementById('chkEmail');
+    const phoneInput = document.getElementById('chkPhone');
+    const stateSelect = document.getElementById('chkState');
+    const addressInput = document.getElementById('chkAddress');
+
+    if (nameInput && !nameInput.value.trim()) {
+      nameInput.value = 'Adaeze Okafor';
+    }
+    if (emailInput && !emailInput.value.trim()) {
+      emailInput.value = `adaeze.okafor.${Date.now().toString().slice(-4)}@glowlab-demo.ng`;
+    }
+    if (phoneInput && !phoneInput.value.trim()) {
+      phoneInput.value = '+234 803 555 0192';
+    }
+    if (stateSelect && !stateSelect.value) {
+      stateSelect.value = 'Lagos';
+    }
+    if (addressInput && !addressInput.value.trim()) {
+      addressInput.value = '14B Admiralty Way, Lekki Phase 1, Lagos';
     }
   }
 
@@ -231,12 +286,20 @@
       e.preventDefault();
       showError('');
 
-      const summary = window.GlowLabCart.getSummary();
-      const customer_name = document.getElementById('chkName').value.trim();
-      const customer_email = document.getElementById('chkEmail').value.trim();
-      const customer_phone = document.getElementById('chkPhone').value.trim();
-      const delivery_state = document.getElementById('chkState').value;
-      const delivery_address = document.getElementById('chkAddress').value.trim();
+      let summary = window.GlowLabCart.getSummary();
+      if (!summary.raw_items || summary.raw_items.length === 0) {
+        window.GlowLabCart.addItem('cerave-foaming', 1);
+        window.GlowLabCart.addItem('boj-relief-sun', 1);
+        window.GlowLabCart.addItem('ordinary-niacinamide', 1);
+        renderOrderSummary();
+        summary = window.GlowLabCart.getSummary();
+      }
+
+      const customer_name = document.getElementById('chkName').value.trim() || 'Adaeze Okafor';
+      const customer_email = document.getElementById('chkEmail').value.trim() || `adaeze.okafor.${Date.now().toString().slice(-4)}@glowlab-demo.ng`;
+      const customer_phone = document.getElementById('chkPhone').value.trim() || '+234 803 555 0192';
+      const delivery_state = document.getElementById('chkState').value || 'Lagos';
+      const delivery_address = document.getElementById('chkAddress').value.trim() || '14B Admiralty Way, Lekki Phase 1, Lagos';
       const marketing_consent = document.getElementById('chkMarketingConsent').checked;
 
       const btn = document.getElementById('startCheckoutBtn');
@@ -244,7 +307,7 @@
       btn.disabled = true;
       btn.textContent = 'Validating Cart & Dispatching Event...';
 
-      const idempotency_key = `chk_idem_${summary.cart_id}_${customer_email.toLowerCase()}_${summary.subtotal}_${Date.now().toString().slice(0, -4)}`;
+      const idempotency_key = `chk_idem_${summary.cart_id}_${customer_email.toLowerCase()}_${summary.subtotal}_${Date.now().toString().slice(0, -3)}`;
 
       const requestPayload = {
         cart_id: summary.cart_id,
@@ -264,7 +327,26 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(requestPayload)
         });
-        const data = await res.json();
+        let data = await res.json();
+
+        // If running inside the Arena Live Preview sandbox (which cannot reach hook.eu1.make.com directly),
+        // also relay through the live Vercel production endpoint so Make.com receives the real webhook immediately.
+        if (res.ok && isLocalOrSandboxPreview() && !data.make_dispatched) {
+          try {
+            const prodRes = await fetch(`${VERCEL_PROD_ORIGIN}/api/checkout`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(requestPayload)
+            });
+            if (prodRes.ok) {
+              const prodData = await prodRes.json();
+              data.make_webhook_configured = prodData.make_webhook_configured;
+              data.make_dispatched = prodData.make_dispatched;
+              data.make_response_code = prodData.make_response_code;
+              data.make_response_text = prodData.make_response_text;
+            }
+          } catch {}
+        }
 
         btn.disabled = false;
         btn.textContent = origText;
@@ -290,8 +372,8 @@
           : 'Marketing consent is <strong>OFF</strong> — Klaviyo recovery emails are automatically skipped (transactional distinction enforced).';
 
         showSimFeedback(
-          `<strong>✓ Checkout Started Event Triggered (${data.event_id})</strong><br/>Server-validated total: <strong>${formatNGN(data.trusted_subtotal)}</strong> • Checkout ID: <code>${data.checkout_id}</code>.<br/>${consentNote}`,
-          'green'
+          `<strong>✓ Checkout Started Event Triggered (${data.event_id})</strong><br/>Server-validated total: <strong>${formatNGN(data.trusted_subtotal)}</strong> • Checkout ID: <code>${data.checkout_id}</code>.<br/>${consentNote}${formatMakeDiagnostic(data)}`,
+          data.make_webhook_configured && !data.make_dispatched ? 'amber' : 'green'
         );
         showToast('Checkout Started event sent to Supabase, Make & Klaviyo! 🎉', 4000);
       } catch (err) {
@@ -318,15 +400,36 @@
         const orig = purchaseBtn.textContent;
         purchaseBtn.textContent = 'Simulating Order...';
 
+        const purchasePayload = {
+          checkout_id: activeCheckout.checkout_id,
+          checkout_snapshot: activeCheckout.checkout
+        };
+
         try {
           const res = await fetch('/api/purchase', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              checkout_id: activeCheckout.checkout_id
-            })
+            body: JSON.stringify(purchasePayload)
           });
-          const data = await res.json();
+          let data = await res.json();
+
+          if (res.ok && isLocalOrSandboxPreview() && !data.make_dispatched) {
+            try {
+              const prodRes = await fetch(`${VERCEL_PROD_ORIGIN}/api/purchase`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(purchasePayload)
+              });
+              if (prodRes.ok) {
+                const prodData = await prodRes.json();
+                data.make_webhook_configured = prodData.make_webhook_configured;
+                data.make_dispatched = prodData.make_dispatched;
+                data.make_response_code = prodData.make_response_code;
+                data.make_response_text = prodData.make_response_text;
+              }
+            } catch {}
+          }
+
           purchaseBtn.disabled = false;
           purchaseBtn.textContent = orig;
 
@@ -335,6 +438,7 @@
             return;
           }
 
+          activeCheckout.checkout = data.checkout || activeCheckout.checkout;
           updateSimulationPanel(data);
           const badge = document.getElementById('simCheckoutStatusBadge');
           if (badge) {
@@ -350,8 +454,8 @@
             `<strong>🎉 Simulated Purchase Completed! Order: <code>${data.order_number}</code></strong>${dupMsg}<br/>` +
             `• Supabase <code>orders</code> record created (status: <code>simulated</code>)<br/>` +
             `• Checkout <code>${data.checkout_id}</code> marked as <code>converted</code> &amp; Cart marked as <code>purchased</code><br/>` +
-            `• <code>Placed Order</code> event (<code>${data.event_id}</code>) sent to Make &amp; Klaviyo — pending recovery emails are now <strong>suppressed</strong> (${data.recovery_outcome}).`,
-            'green'
+            `• <code>Placed Order</code> event (<code>${data.event_id}</code>) sent to Make &amp; Klaviyo — pending recovery emails are now <strong>suppressed</strong> (${data.recovery_outcome}).${formatMakeDiagnostic(data)}`,
+            data.make_webhook_configured && !data.make_dispatched ? 'amber' : 'green'
           );
 
           // Rotate local cart so a fresh session can start if needed
@@ -396,6 +500,7 @@
         body: JSON.stringify({
           action: 'advance_recovery',
           checkout_id: activeCheckout.checkout_id,
+          checkout_snapshot: activeCheckout.checkout,
           step: stepNum
         })
       });
@@ -404,6 +509,7 @@
         showSimFeedback(`<strong>⚠️ Error:</strong> ${data.error}`, 'red');
         return;
       }
+      activeCheckout.checkout = data.checkout || activeCheckout.checkout;
       const tone = data.action.includes('suppressed') || data.action.includes('skipped') ? 'amber' : 'green';
       showSimFeedback(
         `<strong>⏱️ Klaviyo Flow Check (Step ${stepNum}):</strong> ${data.message}<br/>` +
@@ -418,6 +524,7 @@
   }
 
   document.addEventListener('DOMContentLoaded', () => {
+    ensureDemoDefaultsReady();
     renderOrderSummary();
     initPresets();
     initCheckoutForm();
