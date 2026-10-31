@@ -1,0 +1,132 @@
+{
+  "name": "GlowLab Skincare - Scenario 2: Placed Order (Simulated Purchase) -> Klaviyo Suppression + Supabase + Airtable",
+  "flow": [
+    {
+      "id": 1,
+      "module": "gateway:CustomWebHook",
+      "version": 1,
+      "parameters": {
+        "hook": "glowlab_placed_order_webhook",
+        "maxResults": 1
+      },
+      "mapper": {},
+      "metadata": {
+        "designer": { "x": 0, "y": 0 },
+        "notes": "Receives Placed Order event from GlowLab purchase-simulate endpoint"
+      }
+    },
+    {
+      "id": 2,
+      "module": "builtin:BasicRouter",
+      "version": 1,
+      "metadata": {
+        "designer": { "x": 300, "y": 0 },
+        "notes": "Validates order_id, checkout_id, customer_email, and total_amount"
+      },
+      "routes": [
+        {
+          "flow": [
+            {
+              "id": 3,
+              "module": "http:ActionSendData",
+              "version": 3,
+              "filter": {
+                "name": "Valid Placed Order Payload",
+                "conditions": [
+                  [
+                    { "a": "{{1.event_id}}", "o": "exist" },
+                    { "a": "{{1.checkout_id}}", "o": "exist" },
+                    { "a": "{{1.order_id}}", "o": "exist" },
+                    { "a": "{{1.customer_email}}", "o": "text:contain", "b": "@" }
+                  ]
+                ]
+              },
+              "parameters": {
+                "handleErrors": true
+              },
+              "mapper": {
+                "url": "https://a.klaviyo.com/api/events/",
+                "method": "post",
+                "headers": [
+                  { "name": "Authorization", "value": "Klaviyo-API-Key {{env.KLAVIYO_PRIVATE_API_KEY}}" },
+                  { "name": "revision", "value": "2024-10-15" },
+                  { "name": "Content-Type", "value": "application/json" }
+                ],
+                "bodyType": "raw",
+                "contentType": "application/json",
+                "data": "{\"data\":{\"type\":\"event\",\"attributes\":{\"unique_id\":\"{{1.event_id}}\",\"time\":\"{{1.event_timestamp}}\",\"value\":{{1.total_amount}},\"value_currency\":\"NGN\",\"metric\":{\"data\":{\"type\":\"metric\",\"attributes\":{\"name\":\"Placed Order\"}}},\"profile\":{\"data\":{\"type\":\"profile\",\"attributes\":{\"email\":\"{{1.customer_email}}\"}}},\"properties\":{\"order_id\":\"{{1.order_id}}\",\"order_number\":\"{{1.order_number}}\",\"checkout_id\":\"{{1.checkout_id}}\",\"cart_id\":\"{{1.cart_id}}\",\"is_simulated_order\":true,\"product_names\":{{toString(1.product_names)}},\"product_ids\":{{toString(1.product_ids)}},\"items\":{{toString(1.items)}},\"total_amount\":{{1.total_amount}},\"currency\":\"NGN\",\"recovery_outcome\":\"{{1.recovery_outcome}}\"}}}}"
+              },
+              "metadata": {
+                "designer": { "x": 600, "y": -100 },
+                "notes": "Sends Placed Order metric to Klaviyo so Abandoned Cart Flow automatically suppresses pending reminder emails"
+              }
+            },
+            {
+              "id": 4,
+              "module": "airtable:ActionUpdateRecord",
+              "version": 3,
+              "parameters": {
+                "base": "{{env.AIRTABLE_BASE_ID}}",
+                "table": "Checkout & Recovery Tracker"
+              },
+              "mapper": {
+                "Checkout ID": "{{1.checkout_id}}",
+                "Purchase Status": "Simulated Purchase ({{1.order_number}})",
+                "Second Reminder Status": "Suppressed (Purchased)",
+                "Recovery Outcome": "{{1.recovery_outcome}}"
+              },
+              "metadata": {
+                "designer": { "x": 900, "y": -100 },
+                "notes": "Updates Airtable checkout row to reflect conversion & email suppression"
+              }
+            },
+            {
+              "id": 5,
+              "module": "http:ActionSendData",
+              "version": 3,
+              "mapper": {
+                "url": "{{env.SUPABASE_URL}}/functions/v1/automation-callback",
+                "method": "post",
+                "headers": [
+                  { "name": "Authorization", "value": "Bearer {{env.SUPABASE_SERVICE_ROLE_KEY}}" },
+                  { "name": "Content-Type", "value": "application/json" }
+                ],
+                "bodyType": "raw",
+                "contentType": "application/json",
+                "data": "{\"event_id\":\"{{1.event_id}}\",\"checkout_id\":\"{{1.checkout_id}}\",\"event_status\":\"processed\",\"recovery_outcome\":\"{{1.recovery_outcome}}\"}"
+              },
+              "metadata": {
+                "designer": { "x": 1200, "y": -100 },
+                "notes": "Confirms Placed Order event processing in Supabase"
+              }
+            }
+          ]
+        },
+        {
+          "flow": [
+            {
+              "id": 6,
+              "module": "http:ActionSendData",
+              "version": 3,
+              "mapper": {
+                "url": "{{env.SUPABASE_URL}}/functions/v1/automation-callback",
+                "method": "post",
+                "headers": [
+                  { "name": "Authorization", "value": "Bearer {{env.SUPABASE_SERVICE_ROLE_KEY}}" },
+                  { "name": "Content-Type", "value": "application/json" }
+                ],
+                "bodyType": "raw",
+                "contentType": "application/json",
+                "data": "{\"event_id\":\"{{1.event_id}}\",\"checkout_id\":\"{{1.checkout_id}}\",\"event_status\":\"failed\",\"error_message\":\"Make Scenario 2 Placed Order failure\"}"
+              },
+              "metadata": {
+                "designer": { "x": 600, "y": 140 },
+                "notes": "Error handler route: logs failure in Supabase for safe retry"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,170 @@
+{
+  "name": "GlowLab Skincare - Scenario 1: Checkout Started -> Klaviyo Profile & Event + Airtable + Supabase Status",
+  "flow": [
+    {
+      "id": 1,
+      "module": "gateway:CustomWebHook",
+      "version": 1,
+      "parameters": {
+        "hook": "glowlab_checkout_started_webhook",
+        "maxResults": 1
+      },
+      "mapper": {},
+      "metadata": {
+        "designer": { "x": 0, "y": 0 },
+        "notes": "Receives Checkout Started payload from GlowLab Supabase Edge Function / Vercel API"
+      }
+    },
+    {
+      "id": 2,
+      "module": "builtin:BasicRouter",
+      "version": 1,
+      "mapper": null,
+      "metadata": {
+        "designer": { "x": 300, "y": 0 },
+        "notes": "Validates required fields (event_id, checkout_id, customer_email, cart_subtotal > 0)"
+      },
+      "routes": [
+        {
+          "flow": [
+            {
+              "id": 3,
+              "module": "http:ActionSendData",
+              "version": 3,
+              "filter": {
+                "name": "Valid Checkout Started Payload",
+                "conditions": [
+                  [
+                    { "a": "{{1.event_id}}", "o": "exist" },
+                    { "a": "{{1.checkout_id}}", "o": "exist" },
+                    { "a": "{{1.customer_email}}", "o": "text:contain", "b": "@" },
+                    { "a": "{{1.cart_subtotal}}", "o": "number:greater", "b": "0" }
+                  ]
+                ]
+              },
+              "parameters": {
+                "handleErrors": true
+              },
+              "mapper": {
+                "url": "https://a.klaviyo.com/api/profile-import/",
+                "method": "post",
+                "headers": [
+                  { "name": "Authorization", "value": "Klaviyo-API-Key {{env.KLAVIYO_PRIVATE_API_KEY}}" },
+                  { "name": "revision", "value": "2024-10-15" },
+                  { "name": "Content-Type", "value": "application/json" }
+                ],
+                "bodyType": "raw",
+                "contentType": "application/json",
+                "data": "{\"data\":{\"type\":\"profile\",\"attributes\":{\"email\":\"{{1.customer_email}}\",\"first_name\":\"{{first(split(1.customer_name; space))}}\",\"phone_number\":\"{{1.customer_phone}}\",\"properties\":{\"marketing_consent\":{{1.marketing_consent}},\"storefront\":\"GlowLab Skincare Nigeria\",\"last_checkout_id\":\"{{1.checkout_id}}\"}}}}"
+              },
+              "metadata": {
+                "designer": { "x": 600, "y": -120 },
+                "notes": "Creates or updates customer profile in Klaviyo with explicit marketing_consent property"
+              }
+            },
+            {
+              "id": 4,
+              "module": "http:ActionSendData",
+              "version": 3,
+              "parameters": {
+                "handleErrors": true
+              },
+              "mapper": {
+                "url": "https://a.klaviyo.com/api/events/",
+                "method": "post",
+                "headers": [
+                  { "name": "Authorization", "value": "Klaviyo-API-Key {{env.KLAVIYO_PRIVATE_API_KEY}}" },
+                  { "name": "revision", "value": "2024-10-15" },
+                  { "name": "Content-Type", "value": "application/json" }
+                ],
+                "bodyType": "raw",
+                "contentType": "application/json",
+                "data": "{\"data\":{\"type\":\"event\",\"attributes\":{\"unique_id\":\"{{1.event_id}}\",\"time\":\"{{1.event_timestamp}}\",\"value\":{{1.cart_subtotal}},\"value_currency\":\"NGN\",\"metric\":{\"data\":{\"type\":\"metric\",\"attributes\":{\"name\":\"Checkout Started\"}}},\"profile\":{\"data\":{\"type\":\"profile\",\"attributes\":{\"email\":\"{{1.customer_email}}\"}}},\"properties\":{\"checkout_id\":\"{{1.checkout_id}}\",\"cart_id\":\"{{1.cart_id}}\",\"customer_name\":\"{{1.customer_name}}\",\"marketing_consent\":{{1.marketing_consent}},\"product_names\":{{toString(1.product_names)}},\"product_ids\":{{toString(1.product_ids)}},\"product_quantities\":{{toString(1.product_quantities)}},\"product_prices\":{{toString(1.product_prices)}},\"items\":{{toString(1.items)}},\"cart_subtotal\":{{1.cart_subtotal}},\"currency\":\"NGN\",\"checkout_recovery_url\":\"{{1.checkout_recovery_url}}\"}}}}"
+              },
+              "metadata": {
+                "designer": { "x": 900, "y": -120 },
+                "notes": "Dispatches Checkout Started metric to Klaviyo with unique_id = event_id for idempotency"
+              }
+            },
+            {
+              "id": 5,
+              "module": "airtable:ActionCreateRecord",
+              "version": 3,
+              "parameters": {
+                "base": "{{env.AIRTABLE_BASE_ID}}",
+                "table": "Checkout & Recovery Tracker"
+              },
+              "mapper": {
+                "Customer Email": "{{1.customer_email}}",
+                "Customer Name": "{{1.customer_name}}",
+                "Checkout ID": "{{1.checkout_id}}",
+                "Cart Value (NGN)": "{{1.cart_subtotal}}",
+                "Products": "{{join(1.product_names; \", \")}}",
+                "Checkout Date": "{{1.event_timestamp}}",
+                "Marketing Consent": "{{1.marketing_consent}}",
+                "First Reminder Status": "{{if(1.marketing_consent; \"Scheduled\"; \"Skipped (No Consent)\")}}",
+                "Second Reminder Status": "{{if(1.marketing_consent; \"Scheduled\"; \"Skipped (No Consent)\")}}",
+                "Purchase Status": "Unpaid / Pending",
+                "Recovery Outcome": "{{if(1.marketing_consent; \"In Progress\"; \"Skipped (No Consent)\")}}",
+                "Recovery URL": "{{1.checkout_recovery_url}}"
+              },
+              "metadata": {
+                "designer": { "x": 1200, "y": -120 },
+                "notes": "Logs new checkout session in Airtable operational reporting table"
+              }
+            },
+            {
+              "id": 6,
+              "module": "http:ActionSendData",
+              "version": 3,
+              "parameters": {},
+              "mapper": {
+                "url": "{{env.SUPABASE_URL}}/functions/v1/automation-callback",
+                "method": "post",
+                "headers": [
+                  { "name": "Authorization", "value": "Bearer {{env.SUPABASE_SERVICE_ROLE_KEY}}" },
+                  { "name": "Content-Type", "value": "application/json" }
+                ],
+                "bodyType": "raw",
+                "contentType": "application/json",
+                "data": "{\"event_id\":\"{{1.event_id}}\",\"checkout_id\":\"{{1.checkout_id}}\",\"event_status\":\"processed\"}"
+              },
+              "metadata": {
+                "designer": { "x": 1500, "y": -120 },
+                "notes": "Updates Supabase automation_events.status = processed"
+              }
+            }
+          ]
+        },
+        {
+          "flow": [
+            {
+              "id": 7,
+              "module": "http:ActionSendData",
+              "version": 3,
+              "filter": {
+                "name": "Fallback / Validation Error Handler",
+                "conditions": []
+              },
+              "mapper": {
+                "url": "{{env.SUPABASE_URL}}/functions/v1/automation-callback",
+                "method": "post",
+                "headers": [
+                  { "name": "Authorization", "value": "Bearer {{env.SUPABASE_SERVICE_ROLE_KEY}}" },
+                  { "name": "Content-Type", "value": "application/json" }
+                ],
+                "bodyType": "raw",
+                "contentType": "application/json",
+                "data": "{\"event_id\":\"{{1.event_id}}\",\"checkout_id\":\"{{1.checkout_id}}\",\"event_status\":\"failed\",\"error_message\":\"Make Scenario 1 validation or downstream API failure\"}"
+              },
+              "metadata": {
+                "designer": { "x": 600, "y": 140 },
+                "notes": "Records failure in Supabase automation_events for safe retry"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

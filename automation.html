@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Automation &amp; Airtable Reporting Dashboard | GlowLab Skincare</title>
+  <meta name="description" content="Operational tracking dashboard, Klaviyo recovery email previews, Supabase event logs, and 6-scenario automated test suite for GlowLab Skincare." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%231E2328%22/><text x=%2250%22 y=%2264%22 font-size=%2252%22 text-anchor=%22middle%22 fill=%22white%22 font-family=%22Arial%22 font-weight=%22700%22>G</text></svg>">
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <!-- Navigation -->
+  <nav class="nav">
+    <div class="container nav-inner">
+      <a href="index.html" class="logo">
+        <span class="logo-mark">G</span>
+        GlowLab <span>Skincare</span>
+      </a>
+      <div class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="products.html">Products</a>
+        <a href="about.html">About</a>
+        <a href="faq.html">FAQ</a>
+        <a href="contact.html">Contact</a>
+        <a href="checkout.html">Checkout</a>
+        <a href="automation.html" class="active">Automation</a>
+      </div>
+      <div class="nav-actions">
+        <button class="btn btn-sage" data-chat-lumi>Chat With Lumi</button>
+        <button class="mobile-toggle" id="mobileToggle" aria-label="Toggle menu" aria-expanded="false">☰</button>
+      </div>
+    </div>
+    <div class="mobile-menu" id="mobileMenu">
+      <a href="index.html">Home</a>
+      <a href="products.html">Products</a>
+      <a href="about.html">About</a>
+      <a href="faq.html">FAQ</a>
+      <a href="contact.html">Contact</a>
+      <a href="checkout.html">Checkout</a>
+      <a href="automation.html">Automation Dashboard</a>
+      <button class="btn btn-primary btn-lg" data-chat-lumi>💬 Chat With Lumi</button>
+    </div>
+  </nav>
+
+  <!-- Hero / Header -->
+  <section class="section" style="padding-top:44px; padding-bottom:32px; background:var(--warm-cream);">
+    <div class="container">
+      <div class="reveal" style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:20px;">
+        <div>
+          <span class="eyebrow">Supabase • Make • Klaviyo • Airtable</span>
+          <h1 class="display" style="font-size:clamp(2rem,4vw,3.1rem);">Abandoned Cart <em>Automation Hub</em></h1>
+          <p class="lead" style="margin-top:12px;">
+            Live operational reporting dashboard, Klaviyo recovery email templates, Supabase event logs, and 6-scenario automated verification suite.
+          </p>
+        </div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <a href="checkout.html" class="btn btn-primary">+ New Demo Checkout →</a>
+          <button type="button" class="btn btn-secondary" id="refreshDashboardBtn">↻ Refresh Live Data</button>
+        </div>
+      </div>
+
+      <!-- Operational Metrics Bar (Strictly Measured Simulation Counts — No Invented Revenue Claims) -->
+      <div class="stats-bar" style="margin-top:32px; margin-bottom:0;">
+        <div class="stat-card">
+          <small>Total Checkouts Tracked</small>
+          <strong id="statTotalCheckouts">0</strong>
+          <span style="font-size:0.78rem; color:var(--text-muted);">Stored in Supabase <code>checkouts</code></span>
+        </div>
+        <div class="stat-card">
+          <small>Abandoned (Unpaid)</small>
+          <strong id="statAbandonedUnpaid" style="color:#b45309;">0</strong>
+          <span style="font-size:0.78rem; color:var(--text-muted);">Eligible for Klaviyo reminders</span>
+        </div>
+        <div class="stat-card">
+          <small>Simulated Conversions</small>
+          <strong id="statSimulatedConversions" style="color:var(--sage-dark);">0</strong>
+          <span style="font-size:0.78rem; color:var(--text-muted);">Demo orders (no real money collected)</span>
+        </div>
+        <div class="stat-card">
+          <small>Automation Events Processed</small>
+          <strong id="statEventsProcessed">0</strong>
+          <span style="font-size:0.78rem; color:var(--text-muted);">Idempotent Make &amp; Klaviyo dispatches</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Section 1: Airtable Operational Reporting Dashboard -->
+  <section class="section" style="padding-top:48px; padding-bottom:48px;">
+    <div class="container">
+      <div class="section-header" style="margin-bottom:24px;">
+        <div>
+          <span class="eyebrow">Airtable Reporting View</span>
+          <h2 style="font-size:1.75rem;">Checkout &amp; Cart Recovery Operational Tracker</h2>
+          <p style="color:var(--text-muted); font-size:0.92rem; margin-top:4px;">
+            Demonstrates which customers abandoned checkout, reminder email statuses, purchase suppression, and simulated recovery outcomes.
+          </p>
+        </div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <button type="button" class="btn btn-secondary" id="exportAirtableCsvBtn" style="padding:10px 18px; font-size:0.86rem;">
+            ⬇️ Export Airtable CSV
+          </button>
+        </div>
+      </div>
+
+      <div class="airtable-table-wrap">
+        <table class="airtable-table">
+          <thead>
+            <tr>
+              <th>Checkout ID</th>
+              <th>Customer Email</th>
+              <th>Cart Value</th>
+              <th>Products</th>
+              <th>Checkout Date</th>
+              <th>1st Reminder Status</th>
+              <th>2nd Reminder Status</th>
+              <th>Purchase Status</th>
+              <th>Recovery Outcome</th>
+              <th>Demo Actions</th>
+            </tr>
+          </thead>
+          <tbody id="airtableTableBody">
+            <tr>
+              <td colspan="10" style="text-align:center; padding:32px; color:var(--text-muted);">Loading operational records...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="font-size:0.78rem; color:var(--text-light); margin-top:10px;">
+        Note: All checkouts and orders shown above are simulated portfolio records. Cart values represent server-validated NGN subtotals, not collected revenue.
+      </p>
+    </div>
+  </section>
+
+  <!-- Section 2: 6 Required Test Scenarios Runner -->
+  <section class="section section-cream" id="test-scenarios" style="padding-top:56px; padding-bottom:56px;">
+    <div class="container">
+      <div class="section-header" style="margin-bottom:28px;">
+        <div>
+          <span class="eyebrow">Automated Verification Suite</span>
+          <h2 style="font-size:1.75rem;">6 Required Portfolio Test Scenarios</h2>
+          <p style="color:var(--text-muted); font-size:0.92rem; margin-top:4px;">
+            Run each test scenario individually or execute all 6 end-to-end against the backend validation, idempotency, and Klaviyo suppression engine.
+          </p>
+        </div>
+        <button type="button" class="btn btn-primary" id="runAllTestsBtn">
+          ▶️ Run All 6 Test Scenarios
+        </button>
+      </div>
+
+      <div class="scenario-grid">
+        <!-- Test 1 -->
+        <div class="scenario-card" id="scenarioCard1">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span class="status-pill gray" id="scenarioBadge1">Test 1 • Ready</span>
+            <small style="color:var(--text-light); font-weight:700;">Abandoned Flow</small>
+          </div>
+          <h3 style="font-size:1.05rem;">Test 1: Abandoned Checkout</h3>
+          <p style="font-size:0.86rem; color:var(--text-muted); flex:1;">
+            Customer starts checkout with consent → no purchase occurs → First recovery email is triggered → Second recovery email is triggered.
+          </p>
+          <button type="button" class="btn btn-secondary" data-run-scenario="1" style="width:100%; padding:10px; font-size:0.84rem;">
+            Run Test 1 →
+          </button>
+        </div>
+
+        <!-- Test 2 -->
+        <div class="scenario-card" id="scenarioCard2">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span class="status-pill gray" id="scenarioBadge2">Test 2 • Ready</span>
+            <small style="color:var(--text-light); font-weight:700;">Early Conversion</small>
+          </div>
+          <h3 style="font-size:1.05rem;">Test 2: Purchase Before 1st Reminder</h3>
+          <p style="font-size:0.86rem; color:var(--text-muted); flex:1;">
+            Customer starts checkout → simulates purchase before Wait #1 expires → Klaviyo suppresses both recovery emails.
+          </p>
+          <button type="button" class="btn btn-secondary" data-run-scenario="2" style="width:100%; padding:10px; font-size:0.84rem;">
+            Run Test 2 →
+          </button>
+        </div>
+
+        <!-- Test 3 -->
+        <div class="scenario-card" id="scenarioCard3">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span class="status-pill gray" id="scenarioBadge3">Test 3 • Ready</span>
+            <small style="color:var(--text-light); font-weight:700;">Mid-Flow Recovery</small>
+          </div>
+          <h3 style="font-size:1.05rem;">Test 3: Purchase After 1st Reminder</h3>
+          <p style="font-size:0.86rem; color:var(--text-muted); flex:1;">
+            Customer receives 1st reminder → clicks recovery link &amp; simulates purchase → 2nd reminder is suppressed.
+          </p>
+          <button type="button" class="btn btn-secondary" data-run-scenario="3" style="width:100%; padding:10px; font-size:0.84rem;">
+            Run Test 3 →
+          </button>
+        </div>
+
+        <!-- Test 4 -->
+        <div class="scenario-card" id="scenarioCard4">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span class="status-pill gray" id="scenarioBadge4">Test 4 • Ready</span>
+            <small style="color:var(--text-light); font-weight:700;">Idempotency</small>
+          </div>
+          <h3 style="font-size:1.05rem;">Test 4: Duplicate Event Prevention</h3>
+          <p style="font-size:0.86rem; color:var(--text-muted); flex:1;">
+            Identical event is submitted twice with same idempotency key → system blocks duplicate checkout &amp; webhook firing.
+          </p>
+          <button type="button" class="btn btn-secondary" data-run-scenario="4" style="width:100%; padding:10px; font-size:0.84rem;">
+            Run Test 4 →
+          </button>
+        </div>
+
+        <!-- Test 5 -->
+        <div class="scenario-card" id="scenarioCard5">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span class="status-pill gray" id="scenarioBadge5">Test 5 • Ready</span>
+            <small style="color:var(--text-light); font-weight:700;">Validation</small>
+          </div>
+          <h3 style="font-size:1.05rem;">Test 5: Invalid Checkout Rejection</h3>
+          <p style="font-size:0.86rem; color:var(--text-muted); flex:1;">
+            Submits missing/invalid email and untrusted product ID → server rejects with HTTP 400 and logs zero invalid events.
+          </p>
+          <button type="button" class="btn btn-secondary" data-run-scenario="5" style="width:100%; padding:10px; font-size:0.84rem;">
+            Run Test 5 →
+          </button>
+        </div>
+
+        <!-- Test 6 -->
+        <div class="scenario-card" id="scenarioCard6">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span class="status-pill gray" id="scenarioBadge6">Test 6 • Ready</span>
+            <small style="color:var(--text-light); font-weight:700;">Resilience</small>
+          </div>
+          <h3 style="font-size:1.05rem;">Test 6: Workflow Failure &amp; Safe Retry</h3>
+          <p style="font-size:0.86rem; color:var(--text-muted); flex:1;">
+            Simulates a failed Make/Klaviyo HTTP 503 request → records error in <code>automation_events</code> → retries safely to <code>processed</code>.
+          </p>
+          <button type="button" class="btn btn-secondary" data-run-scenario="6" style="width:100%; padding:10px; font-size:0.84rem;">
+            Run Test 6 →
+          </button>
+        </div>
+      </div>
+
+      <!-- Test Execution Output Console -->
+      <div id="testResultsConsole" style="display:none; margin-top:24px; background:var(--white); border:1px solid var(--border); border-radius:var(--radius-md); padding:22px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <strong style="font-size:1rem;" id="testConsoleTitle">Test Execution Output</strong>
+          <span class="status-pill green" id="testConsoleStatus">PASSED</span>
+        </div>
+        <div id="testConsoleSteps" style="font-size:0.88rem; color:var(--charcoal-soft); line-height:1.65;"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Section 3: Branded Klaviyo Recovery Email Templates Preview -->
+  <section class="section" id="email-previews" style="padding-top:56px; padding-bottom:56px;">
+    <div class="container">
+      <div class="section-header" style="margin-bottom:24px;">
+        <div>
+          <span class="eyebrow">Klaviyo Email Templates</span>
+          <h2 style="font-size:1.75rem;">Branded Abandoned-Cart Recovery Emails</h2>
+          <p style="color:var(--text-muted); font-size:0.92rem; margin-top:4px;">
+            Calm, helpful, on-brand HTML templates with dynamic cart items, NGN totals, and functional cart-restoration links — zero false scarcity or invented discounts.
+          </p>
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button type="button" class="filter-btn active" id="previewEmail1Tab">Email 1: First Friendly Reminder</button>
+          <button type="button" class="filter-btn" id="previewEmail2Tab">Email 2: Second Follow-Up</button>
+        </div>
+      </div>
+
+      <div style="background:var(--warm-cream); border:1px solid var(--warm-cream-border); border-radius:var(--radius-lg); padding:24px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; padding-bottom:16px; margin-bottom:18px; border-bottom:1px solid var(--warm-cream-border); font-size:0.86rem;">
+          <div>
+            <strong>Subject:</strong> <span id="emailPreviewSubject">Still thinking about your GlowLab routine? 🌿</span><br/>
+            <strong>Trigger Delay:</strong> <span id="emailPreviewDelay">Demo: 2–5 mins • Production: 1 hour after Checkout Started (if Placed Order = 0)</span>
+          </div>
+          <a href="checkout.html?recover_checkout=gl_rec_seed001amaka" class="btn btn-sage" style="padding:9px 18px; font-size:0.84rem;">
+            🔗 Test "Return to Cart" Link Live →
+          </a>
+        </div>
+        <iframe id="emailPreviewFrame" src="automation/klaviyo/email-1-first-reminder.html" title="Klaviyo Recovery Email Preview" style="width:100%; height:660px; border:1px solid var(--border); border-radius:var(--radius-md); background:var(--white);"></iframe>
+      </div>
+    </div>
+  </section>
+
+  <!-- Section 4: Supabase Automation Events Log & Safe Retry Queue -->
+  <section class="section section-cream" style="padding-top:48px; padding-bottom:64px;">
+    <div class="container">
+      <div class="section-header" style="margin-bottom:24px;">
+        <div>
+          <span class="eyebrow">Supabase `automation_events` Table</span>
+          <h2 style="font-size:1.75rem;">Event Dispatch &amp; Idempotency Log</h2>
+          <p style="color:var(--text-muted); font-size:0.92rem; margin-top:4px;">
+            Every <code>Checkout Started</code>, <code>Placed Order</code>, and recovery email event with idempotency keys and error retry controls.
+          </p>
+        </div>
+      </div>
+
+      <div class="airtable-table-wrap">
+        <table class="airtable-table">
+          <thead>
+            <tr>
+              <th>Event ID</th>
+              <th>Event Type</th>
+              <th>Customer Email</th>
+              <th>Checkout ID</th>
+              <th>Idempotency Key</th>
+              <th>Status</th>
+              <th>Attempts</th>
+              <th>Timestamp</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="eventsTableBody">
+            <tr>
+              <td colspan="9" style="text-align:center; padding:28px; color:var(--text-muted);">Loading event log...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div>
+          <a href="index.html" class="logo" style="margin-bottom:14px;"><span class="logo-mark">G</span> GlowLab <span>Skincare</span></a>
+          <p style="max-width:34ch; margin-top:12px;">Modern skincare store based in Lagos. Curated authentic products + AI skincare guidance + automated cart recovery.</p>
+        </div>
+        <div>
+          <h4>Storefront</h4>
+          <div class="footer-links">
+            <a href="index.html">Home</a>
+            <a href="products.html">Products</a>
+            <a href="checkout.html">Demo Checkout</a>
+            <a href="automation.html">Automation Hub</a>
+          </div>
+        </div>
+        <div>
+          <h4>Architecture</h4>
+          <div class="footer-links">
+            <a href="#test-scenarios">6 Test Scenarios</a>
+            <a href="#email-previews">Klaviyo Templates</a>
+            <a href="faq.html">FAQs</a>
+          </div>
+        </div>
+        <div>
+          <h4>Contact</h4>
+          <div class="footer-links">
+            <span>Lagos, Nigeria</span>
+            <span>hello@glowlab.ng</span>
+            <span>+234 801 234 5678</span>
+          </div>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>© <span id="year">2026</span> GlowLab Skincare. All rights reserved.</span>
+        <span>Built for portfolio demo • Prices in NGN</span>
+      </div>
+      <div class="footer-note">GlowLab Skincare is a fictional brand created to demonstrate an AI-powered customer support assistant (Lumi) and an end-to-end Abandoned Cart Recovery System using Supabase, Make, Klaviyo and Airtable.</div>
+    </div>
+  </footer>
+
+  <button id="backToTop" aria-label="Back to top">↑</button>
+  <div class="toast" id="toast">Ready</div>
+
+  <!-- Lumi Botpress AI -->
+  <script src="https://cdn.botpress.cloud/webchat/v5.0/inject.js"></script>
+  <script src="https://files.bpcontent.cloud/2026/08/03/16/20260803163101-9AO2BMBO.js" defer></script>
+  <script src="js/script.js"></script>
+  <script src="js/automation.js"></script>
+</body>
+</html>
