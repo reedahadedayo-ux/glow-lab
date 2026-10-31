@@ -1,4 +1,4 @@
-/* GlowLab Skincare - Vanilla JS */
+/* GlowLab Skincare - Vanilla JS (Storefront + Persistent Cart + Checkout Automation) */
 
 const PRODUCTS = [
   {
@@ -187,6 +187,442 @@ function formatNGN(n) {
   return new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(n);
 }
 
+/* ============================================================================
+   Persistent Shopping Cart Manager (LocalStorage + Supabase / Server Sync)
+   ============================================================================ */
+const CART_ID_STORAGE_KEY = 'glowlab_cart_id';
+const CART_ITEMS_STORAGE_KEY = 'glowlab_cart_items';
+const RECOVERED_CUSTOMER_KEY = 'glowlab_recovered_customer';
+
+function generateCartId() {
+  if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+    return `cart_${window.crypto.randomUUID().split('-')[0]}${Date.now().toString(36).slice(-4)}`;
+  }
+  return `cart_${Math.random().toString(36).slice(2, 10)}${Date.now().toString(36).slice(-4)}`;
+}
+
+const CartManager = {
+  cartId: null,
+  items: [], // [{ product_id, quantity }]
+  syncTimer: null,
+
+  init() {
+    let savedId = localStorage.getItem(CART_ID_STORAGE_KEY);
+    if (!savedId) {
+      savedId = generateCartId();
+      localStorage.setItem(CART_ID_STORAGE_KEY, savedId);
+    }
+    this.cartId = savedId;
+
+    try {
+      const raw = localStorage.getItem(CART_ITEMS_STORAGE_KEY);
+      const parsed = raw ? JSON.parse(raw) : [];
+      if (Array.isArray(parsed)) {
+        this.items = parsed.filter(
+          i => i && PRODUCTS.some(p => p.id === i.product_id) && Number.isInteger(Number(i.quantity)) && Number(i.quantity) > 0
+        ).map(i => ({
+          product_id: i.product_id,
+          quantity: Math.min(50, Math.max(1, Number(i.quantity)))
+        }));
+      }
+    } catch {
+      this.items = [];
+    }
+
+    this.mountNavigationAndDrawer();
+    this.updateUI();
+    this.checkRecoveryParams();
+  },
+
+  saveLocal() {
+    localStorage.setItem(CART_ID_STORAGE_KEY, this.cartId);
+    localStorage.setItem(CART_ITEMS_STORAGE_KEY, JSON.stringify(this.items));
+    this.updateUI();
+    this.scheduleServerSync();
+    window.dispatchEvent(new CustomEvent('glowlab:cart-updated', { detail: this.getSummary() }));
+  },
+
+  scheduleServerSync() {
+    clearTimeout(this.syncTimer);
+    this.syncTimer = setTimeout(() => {
+      this.syncToServer();
+    }, 180);
+  },
+
+  async syncToServer() {
+    try {
+      const res = await fetch('/api/cart', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cart_id: this.cartId,
+          items: this.items
+        })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        return data;
+      }
+    } catch {
+      // Offline / static fallback gracefully preserves localStorage cart
+    }
+    return null;
+  },
+
+  async checkRecoveryParams() {
+    const params = new URLSearchParams(window.location.search);
+    const recoverToken = params.get('recover_checkout') || params.get('recovery_token');
+    const queryCartId = params.get('cart_id');
+
+    if (!recoverToken && !queryCartId) return;
+
+    try {
+      const qs = recoverToken
+        ? `recover_checkout=${encodeURIComponent(recoverToken)}`
+        : `cart_id=${encodeURIComponent(queryCartId)}`;
+      const res = await fetch(`/api/cart?${qs}`);
+      if (!res.ok) return;
+      const data = await res.json();
+
+      if (data.recovered && Array.isArray(data.items) && data.items.length > 0) {
+        this.cartId = data.cart_id || this.cartId;
+        this.items = data.items
+          .filter(i => PRODUCTS.some(p => p.id === (i.product_id || i.id)))
+          .map(i => ({
+            product_id: i.product_id || i.id,
+            quantity: Number(i.quantity) || 1
+          }));
+
+        if (data.customer) {
+          sessionStorage.setItem(RECOVERED_CUSTOMER_KEY, JSON.stringify({
+            ...data.customer,
+            recovered_checkout_id: data.checkout_id,
+            recovery_token: data.recovery_token
+          }));
+        }
+
+        this.saveLocal();
+        showToast('Welcome back! Your saved GlowLab routine has been restored to your cart. 💚', 5000);
+        window.dispatchEvent(new CustomEvent('glowlab:cart-recovered', { detail: data }));
+      } else if (data.cart && Array.isArray(data.items) && data.items.length > 0) {
+        this.cartId = data.cart.id;
+        this.items = data.items.map(i => ({
+          product_id: i.product_id,
+          quantity: Number(i.quantity) || 1
+        }));
+        this.saveLocal();
+        showToast('Your saved cart has been restored! 🛍️', 3500);
+      }
+    } catch {
+      // Ignore network errors
+    }
+  },
+
+  addItem(productId, quantity = 1) {
+    const product = PRODUCTS.find(p => p.id === productId);
+    if (!product) return;
+    const qty = Math.max(1, Number(quantity) || 1);
+    const existing = this.items.find(i => i.product_id === productId);
+    if (existing) {
+      existing.quantity = Math.min(50, existing.quantity + qty);
+    } else {
+      this.items.push({ product_id: productId, quantity: Math.min(50, qty) });
+    }
+    this.saveLocal();
+    showToast(`Added ${product.name} to cart (${this.getItemCount()} in cart) 🛍️`, 3000);
+  },
+
+  updateQuantity(productId, newQuantity) {
+    const qty = Number(newQuantity);
+    if (qty <= 0) {
+      this.removeItem(productId);
+      return;
+    }
+    const existing = this.items.find(i => i.product_id === productId);
+    if (existing) {
+      existing.quantity = Math.min(50, qty);
+      this.saveLocal();
+    }
+  },
+
+  removeItem(productId) {
+    const product = PRODUCTS.find(p => p.id === productId);
+    this.items = this.items.filter(i => i.product_id !== productId);
+    this.saveLocal();
+    if (product) {
+      showToast(`Removed ${product.name} from cart`, 2500);
+    }
+  },
+
+  clearCart(rotateCartId = false) {
+    this.items = [];
+    if (rotateCartId) {
+      this.cartId = generateCartId();
+    }
+    this.saveLocal();
+  },
+
+  getDetailedItems() {
+    return this.items
+      .map(item => {
+        const product = PRODUCTS.find(p => p.id === item.product_id);
+        if (!product) return null;
+        return {
+          product_id: product.id,
+          name: product.name,
+          brand: product.brand,
+          category: product.category,
+          image: product.image,
+          unit_price: product.price,
+          quantity: item.quantity,
+          line_total: product.price * item.quantity
+        };
+      })
+      .filter(Boolean);
+  },
+
+  getItemCount() {
+    return this.items.reduce((sum, i) => sum + i.quantity, 0);
+  },
+
+  getSubtotal() {
+    return this.getDetailedItems().reduce((sum, i) => sum + i.line_total, 0);
+  },
+
+  getSummary() {
+    const detailed = this.getDetailedItems();
+    const subtotal = detailed.reduce((sum, i) => sum + i.line_total, 0);
+    return {
+      cart_id: this.cartId,
+      items: detailed,
+      raw_items: this.items,
+      item_count: this.getItemCount(),
+      subtotal,
+      total: subtotal,
+      currency: 'NGN'
+    };
+  },
+
+  openDrawer() {
+    const drawer = document.getElementById('cartDrawer');
+    const backdrop = document.getElementById('cartDrawerBackdrop');
+    if (!drawer || !backdrop) return;
+    drawer.classList.add('open');
+    backdrop.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  },
+
+  closeDrawer() {
+    const drawer = document.getElementById('cartDrawer');
+    const backdrop = document.getElementById('cartDrawerBackdrop');
+    if (!drawer || !backdrop) return;
+    drawer.classList.remove('open');
+    backdrop.classList.remove('open');
+    document.body.style.overflow = '';
+  },
+
+  mountNavigationAndDrawer() {
+    // 1. Ensure Checkout & Automation Dashboard links exist in .nav-links & #mobileMenu
+    const navLinks = document.querySelector('.nav-links');
+    if (navLinks && !navLinks.querySelector('a[href="checkout.html"]')) {
+      const checkoutLink = document.createElement('a');
+      checkoutLink.href = 'checkout.html';
+      checkoutLink.textContent = 'Checkout';
+      navLinks.appendChild(checkoutLink);
+    }
+    if (navLinks && !navLinks.querySelector('a[href="automation.html"]')) {
+      const autoLink = document.createElement('a');
+      autoLink.href = 'automation.html';
+      autoLink.textContent = 'Automation';
+      navLinks.appendChild(autoLink);
+    }
+
+    const mobileMenu = document.getElementById('mobileMenu');
+    if (mobileMenu && !mobileMenu.querySelector('a[href="checkout.html"]')) {
+      const lumiBtn = mobileMenu.querySelector('[data-chat-lumi]');
+      const chkLink = document.createElement('a');
+      chkLink.href = 'checkout.html';
+      chkLink.textContent = 'Checkout';
+      const autoLink = document.createElement('a');
+      autoLink.href = 'automation.html';
+      autoLink.textContent = 'Automation Dashboard';
+      if (lumiBtn) {
+        mobileMenu.insertBefore(chkLink, lumiBtn);
+        mobileMenu.insertBefore(autoLink, lumiBtn);
+      } else {
+        mobileMenu.appendChild(chkLink);
+        mobileMenu.appendChild(autoLink);
+      }
+    }
+
+    // 2. Inject Cart Button with Badge into .nav-actions
+    const navActions = document.querySelector('.nav-actions');
+    if (navActions && !document.getElementById('navCartBtn')) {
+      const cartBtn = document.createElement('button');
+      cartBtn.type = 'button';
+      cartBtn.id = 'navCartBtn';
+      cartBtn.className = 'cart-trigger-btn';
+      cartBtn.setAttribute('aria-label', 'Open shopping cart');
+      cartBtn.innerHTML = `
+        <span>🛍️ Cart</span>
+        <span class="cart-badge" id="navCartCount">0</span>
+      `;
+      cartBtn.addEventListener('click', () => this.openDrawer());
+      navActions.insertBefore(cartBtn, navActions.firstChild);
+    }
+
+    // 3. Inject Slide-Over Cart Drawer into document.body
+    if (!document.getElementById('cartDrawer')) {
+      const backdrop = document.createElement('div');
+      backdrop.id = 'cartDrawerBackdrop';
+      backdrop.className = 'cart-drawer-backdrop';
+      backdrop.addEventListener('click', () => this.closeDrawer());
+
+      const drawer = document.createElement('aside');
+      drawer.id = 'cartDrawer';
+      drawer.className = 'cart-drawer';
+      drawer.setAttribute('aria-label', 'Shopping Cart');
+      drawer.innerHTML = `
+        <div class="cart-drawer-header">
+          <div>
+            <h3>🛍️ Your Skincare Cart <span class="cart-badge" id="drawerCartCount">0</span></h3>
+            <div style="margin-top:6px;">
+              <span class="cart-id-chip" id="drawerCartIdChip" title="Persistent Cart ID stored in LocalStorage & Supabase"></span>
+            </div>
+          </div>
+          <button type="button" class="modal-close" id="closeCartDrawerBtn" aria-label="Close cart" style="position:static;">✕</button>
+        </div>
+        <div class="cart-drawer-body" id="cartDrawerBody"></div>
+        <div class="cart-drawer-footer" id="cartDrawerFooter">
+          <div class="cart-summary-line">
+            <span>Subtotal</span>
+            <strong id="cartDrawerSubtotal">₦0</strong>
+          </div>
+          <div class="cart-summary-line">
+            <span>Shipping</span>
+            <span style="font-size:0.82rem; color:var(--text-muted);">Calculated at checkout</span>
+          </div>
+          <div class="cart-summary-total">
+            <span>Total (NGN)</span>
+            <span id="cartDrawerTotal">₦0</span>
+          </div>
+          <div style="display:grid; gap:10px;">
+            <a href="checkout.html" class="btn btn-primary" id="proceedCheckoutBtn" style="width:100%;">Proceed to Checkout →</a>
+            <button type="button" class="btn btn-secondary" id="continueShoppingBtn" style="width:100%; padding:11px 20px;">Continue Shopping</button>
+          </div>
+          <p style="font-size:0.75rem; color:var(--text-light); text-align:center; margin-top:10px;">
+            Persistent cart synced with Supabase • Demo checkout simulation
+          </p>
+        </div>
+      `;
+
+      document.body.appendChild(backdrop);
+      document.body.appendChild(drawer);
+
+      document.getElementById('closeCartDrawerBtn').addEventListener('click', () => this.closeDrawer());
+      document.getElementById('continueShoppingBtn').addEventListener('click', () => this.closeDrawer());
+    }
+  },
+
+  updateUI() {
+    const count = this.getItemCount();
+    const subtotal = this.getSubtotal();
+    const detailed = this.getDetailedItems();
+
+    const navBadge = document.getElementById('navCartCount');
+    if (navBadge) {
+      navBadge.textContent = String(count);
+      navBadge.classList.toggle('has-items', count > 0);
+    }
+
+    const drawerBadge = document.getElementById('drawerCartCount');
+    if (drawerBadge) {
+      drawerBadge.textContent = String(count);
+      drawerBadge.classList.toggle('has-items', count > 0);
+    }
+
+    const idChip = document.getElementById('drawerCartIdChip');
+    if (idChip) {
+      idChip.textContent = `Cart ID: ${this.cartId}`;
+    }
+
+    const subEl = document.getElementById('cartDrawerSubtotal');
+    const totEl = document.getElementById('cartDrawerTotal');
+    if (subEl) subEl.textContent = formatNGN(subtotal);
+    if (totEl) totEl.textContent = formatNGN(subtotal);
+
+    const bodyEl = document.getElementById('cartDrawerBody');
+    if (!bodyEl) return;
+
+    if (detailed.length === 0) {
+      bodyEl.innerHTML = `
+        <div class="cart-empty-state">
+          <div style="font-size:2.4rem; margin-bottom:12px;">🧴</div>
+          <h4 style="font-size:1.05rem; color:var(--charcoal); margin-bottom:6px;">Your skincare cart is empty</h4>
+          <p style="font-size:0.88rem; margin-bottom:20px;">Explore our 12 dermatologist-inspired essentials or ask Lumi to build your routine.</p>
+          <a href="products.html" class="btn btn-sage" style="font-size:0.88rem;">Browse Products →</a>
+        </div>
+      `;
+      return;
+    }
+
+    bodyEl.innerHTML = detailed
+      .map(
+        item => `
+        <div class="cart-item-row" data-cart-row="${item.product_id}">
+          <div class="cart-item-thumb">
+            <img src="images/${item.image}" alt="${item.name}" onerror="this.src='https://via.placeholder.com/100x100/FDF8F3/9AB19F?text=GlowLab'">
+          </div>
+          <div class="cart-item-info">
+            <div class="cart-item-brand">${item.brand}</div>
+            <h4>${item.name}</h4>
+            <div style="font-size:0.84rem; color:var(--text-muted); font-weight:600;">
+              ${formatNGN(item.unit_price)} each • <span style="color:var(--charcoal);">${formatNGN(item.line_total)}</span>
+            </div>
+            <div class="cart-item-controls">
+              <div class="qty-stepper">
+                <button type="button" data-cart-dec="${item.product_id}" aria-label="Decrease quantity">−</button>
+                <span>${item.quantity}</span>
+                <button type="button" data-cart-inc="${item.product_id}" aria-label="Increase quantity">+</button>
+              </div>
+              <button type="button" class="cart-remove-btn" data-cart-remove="${item.product_id}">Remove</button>
+            </div>
+          </div>
+        </div>
+      `
+      )
+      .join('');
+
+    bodyEl.querySelectorAll('[data-cart-dec]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const pid = btn.dataset.cartDec;
+        const found = this.items.find(i => i.product_id === pid);
+        if (found) this.updateQuantity(pid, found.quantity - 1);
+      });
+    });
+
+    bodyEl.querySelectorAll('[data-cart-inc]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const pid = btn.dataset.cartInc;
+        const found = this.items.find(i => i.product_id === pid);
+        if (found) this.updateQuantity(pid, found.quantity + 1);
+      });
+    });
+
+    bodyEl.querySelectorAll('[data-cart-remove]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        this.removeItem(btn.dataset.cartRemove);
+      });
+    });
+  }
+};
+
+window.GlowLabCart = CartManager;
+
+/* ============================================================================
+   Product Rendering, Filtering & Modal
+   ============================================================================ */
+
 function productCardHTML(p, showBadge = false) {
   const badge = p.comparePrice ? `<div class="badge-wrap"><span class="badge sage">Bestseller</span></div>` : (showBadge ? `<span class="badge">${p.category}</span>` : '');
   return `
@@ -205,7 +641,10 @@ function productCardHTML(p, showBadge = false) {
       </div>
       <div class="product-foot">
         <div class="price">${formatNGN(p.price)} ${p.comparePrice ? `<small>${formatNGN(p.comparePrice)}</small>` : ''}</div>
-        <button class="btn btn-secondary btn-view" data-view="${p.id}">View</button>
+        <div class="product-actions">
+          <button class="btn btn-secondary btn-view" data-view="${p.id}">View</button>
+          <button class="btn-add-cart" data-add-cart="${p.id}" aria-label="Add ${p.name} to cart">+ Add</button>
+        </div>
       </div>
     </div>
   </article>`;
@@ -257,6 +696,22 @@ function bindViewButtons() {
       if (product) openModal(product);
     });
   });
+
+  document.querySelectorAll('[data-add-cart]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const pid = btn.dataset.addCart;
+      CartManager.addItem(pid, 1);
+      const origText = btn.textContent;
+      btn.textContent = '✓ Added';
+      btn.classList.add('added');
+      setTimeout(() => {
+        btn.textContent = origText;
+        btn.classList.remove('added');
+      }, 1000);
+    });
+  });
+
   document.querySelectorAll('.product-card').forEach(card => {
     card.addEventListener('click', () => {
       const product = PRODUCTS.find(p => p.id === card.dataset.id);
@@ -265,9 +720,15 @@ function bindViewButtons() {
   });
 }
 
+let currentModalProduct = null;
+let currentModalQty = 1;
+
 function openModal(p) {
   const backdrop = document.getElementById('productModal');
   if (!backdrop) return;
+  currentModalProduct = p;
+  currentModalQty = 1;
+
   document.getElementById('modalImg').src = `images/${p.image}`;
   document.getElementById('modalImg').alt = p.name;
   document.getElementById('modalBrand').textContent = p.brand;
@@ -280,6 +741,56 @@ function openModal(p) {
   document.getElementById('modalHowTo').textContent = p.howTo;
   const ingList = document.getElementById('modalIngredients');
   ingList.innerHTML = p.ingredients.map(i => `<li>${i}</li>`).join('');
+
+  // Inject or update Modal Add-to-Cart bar without breaking Ask Lumi button
+  let modalCartBar = document.getElementById('modalCartActionRow');
+  if (!modalCartBar) {
+    const modalBody = backdrop.querySelector('.modal-body');
+    const lumiBtnRow = modalBody ? modalBody.querySelector('[data-chat-lumi]')?.parentElement : null;
+    if (modalBody && lumiBtnRow) {
+      modalCartBar = document.createElement('div');
+      modalCartBar.id = 'modalCartActionRow';
+      modalCartBar.className = 'modal-cart-bar';
+      modalBody.insertBefore(modalCartBar, lumiBtnRow);
+    }
+  }
+
+  if (modalCartBar) {
+    modalCartBar.innerHTML = `
+      <div class="qty-stepper">
+        <button type="button" id="modalQtyDec" aria-label="Decrease quantity">−</button>
+        <span id="modalQtyVal">1</span>
+        <button type="button" id="modalQtyInc" aria-label="Increase quantity">+</button>
+      </div>
+      <button type="button" class="btn btn-sage" id="modalAddToCartBtn" style="flex:1; padding:11px 18px;">
+        🛍️ Add to Cart • ${formatNGN(p.price)}
+      </button>
+    `;
+
+    const qtyValEl = document.getElementById('modalQtyVal');
+    const addBtnEl = document.getElementById('modalAddToCartBtn');
+
+    document.getElementById('modalQtyDec').addEventListener('click', () => {
+      currentModalQty = Math.max(1, currentModalQty - 1);
+      qtyValEl.textContent = String(currentModalQty);
+      addBtnEl.textContent = `🛍️ Add to Cart • ${formatNGN(p.price * currentModalQty)}`;
+    });
+
+    document.getElementById('modalQtyInc').addEventListener('click', () => {
+      currentModalQty = Math.min(20, currentModalQty + 1);
+      qtyValEl.textContent = String(currentModalQty);
+      addBtnEl.textContent = `🛍️ Add to Cart • ${formatNGN(p.price * currentModalQty)}`;
+    });
+
+    addBtnEl.addEventListener('click', () => {
+      if (currentModalProduct) {
+        CartManager.addItem(currentModalProduct.id, currentModalQty);
+        closeModal();
+        CartManager.openDrawer();
+      }
+    });
+  }
+
   backdrop.classList.add('open');
   document.body.style.overflow = 'hidden';
 }
@@ -298,7 +809,12 @@ function initModal() {
     if (e.target === backdrop) closeModal();
   });
   document.querySelectorAll('[data-close-modal]').forEach(b => b.addEventListener('click', closeModal));
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      closeModal();
+      CartManager.closeDrawer();
+    }
+  });
 }
 
 function initMobileMenu() {
@@ -368,7 +884,12 @@ function initActiveNav() {
   const path = window.location.pathname.split('/').pop() || 'index.html';
   document.querySelectorAll('.nav-links a').forEach(a => {
     const href = a.getAttribute('href');
-    if (href === path || (path === '' && href === 'index.html') || (path === 'index.html' && href === 'index.html')) {
+    if (
+      href === path ||
+      (path === '' && href === 'index.html') ||
+      (path === 'index.html' && href === 'index.html') ||
+      (href && href.replace('.html', '') === path)
+    ) {
       a.classList.add('active');
     }
   });
@@ -434,6 +955,7 @@ function initSmoothScroll() {
 
 // Init
 document.addEventListener('DOMContentLoaded', () => {
+  CartManager.init();
   renderProducts('featuredGrid', 8, 'All');
   renderAllWithFilter();
   initFilters();
