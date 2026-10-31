@@ -1735,6 +1735,53 @@ async function retryFailedEvent({ event_id }) {
 
   const now = new Date().toISOString();
   ev.attempts = (ev.attempts || 1) + 1;
+
+  // If this was not a synthetic Test 6 failure and a live Make webhook URL is configured, re-dispatch
+  const isSyntheticTestFailure = String(ev.error_message || '').includes('Simulated Make/Klaviyo');
+  const webhookUrl =
+    ev.event_type === 'Placed Order'
+      ? process.env.MAKE_PLACED_ORDER_WEBHOOK_URL
+      : process.env.MAKE_CHECKOUT_STARTED_WEBHOOK_URL;
+
+  if (!isSyntheticTestFailure && webhookUrl && ev.payload) {
+    try {
+      const res = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(ev.payload)
+      });
+      ev.make_response_code = res.status;
+      if (!res.ok) {
+        ev.status = 'failed';
+        ev.error_message = `Make webhook retry returned HTTP ${res.status}`;
+        ev.updated_at = now;
+        saveStore(store);
+        return {
+          status: 502,
+          body: {
+            ok: false,
+            message: `Retry attempt #${ev.attempts} failed with HTTP ${res.status}.`,
+            event: ev
+          }
+        };
+      }
+    } catch (err) {
+      ev.status = 'failed';
+      ev.make_response_code = 502;
+      ev.error_message = `Make webhook retry network error: ${err.message}`;
+      ev.updated_at = now;
+      saveStore(store);
+      return {
+        status: 502,
+        body: {
+          ok: false,
+          message: `Retry attempt #${ev.attempts} failed: ${err.message}`,
+          event: ev
+        }
+      };
+    }
+  }
+
   ev.status = 'processed';
   ev.make_response_code = 200;
   ev.error_message = null;
