@@ -1,272 +1,594 @@
-<!DOCTYPE html>
+<!doctype html>
+
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>GlowLab Skincare | Healthy Skin Starts With The Right Routine</title>
-  <meta name="description" content="GlowLab Skincare curates authentic skincare products for every skin type in Lagos, Nigeria. Shop CeraVe, La Roche-Posay, Beauty of Joseon, The Ordinary + personalized advice from Lumi, our AI skincare advisor." />
-  <meta property="og:title" content="GlowLab Skincare - Premium Nigerian Skincare" />
-  <meta property="og:description" content="Authentic skincare, expert guidance, nationwide delivery. Meet Lumi, your AI skincare advisor." />
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%231E2328%22/><text x=%2250%22 y=%2264%22 font-size=%2252%22 text-anchor=%22middle%22 fill=%22white%22 font-family=%22Arial%22 font-weight=%22700%22>G</text></svg>">
-  <link rel="stylesheet" href="css/style.css" />
-</head>
-<body>
-
-  <!-- Navigation -->
-  <nav class="nav">
-    <div class="container nav-inner">
-      <a href="index.html" class="logo">
-        <span class="logo-mark">G</span>
-        GlowLab <span>Skincare</span>
-      </a>
-      <div class="nav-links">
-        <a href="index.html">Home</a>
-        <a href="products.html">Products</a>
-        <a href="about.html">About</a>
-        <a href="faq.html">FAQ</a>
-        <a href="contact.html">Contact</a>
-      </div>
-      <div class="nav-actions">
-        <button class="btn btn-sage" data-chat-lumi>Chat With Lumi</button>
-        <button class="mobile-toggle" id="mobileToggle" aria-label="Toggle menu" aria-expanded="false">☰</button>
-      </div>
+  <head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>GlowLab Skincare | Healthy Skin Starts With The Right Routine</title>
+    <meta
+      content="Explore GlowLab’s skincare demo, build a routine with Lumi, and try a simulated checkout. No real charges or deliveries."
+      name="description"
+    />
+    <meta
+      content="GlowLab Skincare - Premium Nigerian Skincare"
+      property="og:title"
+    />
+    <meta
+      content="Explore GlowLab’s skincare demo, build a routine with Lumi, and try a simulated checkout. No real charges or deliveries."
+      property="og:description"
+    />
+    <link
+      href="data:image/svg+xml,&lt;svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22&gt;&lt;rect width=%22100%22 height=%22100%22 rx=%2220%22 fill=%22%231E2328%22/&gt;&lt;text x=%2250%22 y=%2264%22 font-size=%2252%22 text-anchor=%22middle%22 fill=%22white%22 font-family=%22Arial%22 font-weight=%22700%22&gt;G&lt;/text&gt;&lt;/svg&gt;"
+      rel="icon"
+    />
+    <link href="css/style.css" rel="stylesheet" />
+  </head>
+  <body>
+    <!-- Navigation -->
+    <a class="skip-link" href="#main">Skip to content</a>
+    <div class="demo-bar">
+      A little guidance. A simpler routine.
+      <span>Demo store · no real payments or deliveries</span>
     </div>
-    <div class="mobile-menu" id="mobileMenu">
-      <a href="index.html">Home</a>
-      <a href="products.html">Products</a>
-      <a href="about.html">About</a>
-      <a href="faq.html">FAQ</a>
-      <a href="contact.html">Contact</a>
-      <button class="btn btn-primary btn-lg" data-chat-lumi>💬 Chat With Lumi</button>
-    </div>
-  </nav>
-
-  <!-- Hero -->
-  <section class="hero">
-    <div class="container hero-grid">
-      <div class="hero-content reveal">
-        <span class="eyebrow">Lagos • Nationwide Delivery • Authentic Products</span>
-        <h1 class="display hero-title">Healthy Skin Starts With The <em>Right Routine</em></h1>
-        <p class="hero-desc">Discover authentic skincare products curated for every skin type. Shop trusted brands and get personalized recommendations from Lumi, our AI skincare advisor — available 24/7.</p>
-        <div class="hero-ctas">
-          <a href="products.html" class="btn btn-primary btn-lg">Shop Products →</a>
-          <button class="btn btn-secondary btn-lg" data-chat-lumi>✨ Chat With Lumi</button>
+    <nav aria-label="Main navigation" class="nav">
+      <div class="container nav-inner">
+        <a aria-label="GlowLab home" class="logo" href="index.html"
+          ><span class="logo-mark">G</span> GlowLab <span>Skincare</span></a
+        >
+        <div class="nav-links">
+          <a href="index.html">Home</a><a href="products.html">Products</a
+          ><a href="about.html">About</a><a href="faq.html">FAQ</a
+          ><a href="contact.html">Contact</a>
         </div>
-        <div class="hero-proof">
-          <div class="avatars"><span>AM</span><span>KT</span><span>SD</span><span style="background:#1E2328;color:white;">+2k</span></div>
-          <p><strong>2,400+ happy customers</strong> across Nigeria<br/>4.9/5 average rating • Paystack secure</p>
-        </div>
-      </div>
-      <div class="hero-visual reveal">
-        <div class="hero-img-wrap">
-          <img src="images/hero.jpg" alt="GlowLab Hero" onerror="this.src='https://images.unsplash.com/photo-1556228578-0d85b1a4d571?q=80&w=800&auto=format&fit=crop'">
-        </div>
-        <div class="hero-float hero-float-1">
-          <div class="float-icon">🧴</div>
-          <div class="float-meta"><small>Best Seller</small><strong>BoJ Relief Sun SPF50+</strong></div>
-        </div>
-        <div class="hero-float hero-float-2">
-          <div class="float-icon">🤍</div>
-          <div class="float-meta"><small>Nigeria</small><strong>1-3 days in Lagos</strong></div>
+        <div class="nav-actions">
+          <a class="nav-cart" href="cart.html"
+            >Cart <span data-cart-count="">0</span></a
+          ><button class="btn btn-primary" data-chat-lumi="">
+            Chat With Lumi ↗</button
+          ><button
+            aria-controls="mobileMenu"
+            aria-expanded="false"
+            aria-label="Toggle menu"
+            class="mobile-toggle"
+            id="mobileToggle"
+          >
+            ☰
+          </button>
         </div>
       </div>
-    </div>
-  </section>
-
-  <!-- Categories -->
-  <section class="section" id="categories">
-    <div class="container">
-      <div class="section-header reveal">
-        <div>
-          <span class="eyebrow">Shop by Category</span>
-          <h2>Find Your Perfect Match</h2>
-        </div>
-        <p class="lead">Curated for oily, dry, sensitive and combination skin — beginner friendly, dermatologist-inspired.</p>
+      <div class="mobile-menu" id="mobileMenu">
+        <a href="index.html">Home</a><a href="products.html">Products</a
+        ><a href="about.html">About</a><a href="faq.html">FAQ</a
+        ><a href="contact.html">Contact</a
+        ><a href="cart.html">Cart <span data-cart-count="">0</span></a
+        ><button class="btn btn-primary" data-chat-lumi="">
+          Chat With Lumi ↗
+        </button>
       </div>
-      <div class="cat-grid stagger">
-        <a href="products.html" class="cat-card"><div class="cat-icon">🧼</div><h3>Cleansers</h3><p>12 products</p></a>
-        <a href="products.html" class="cat-card"><div class="cat-icon">💧</div><h3>Serums</h3><p>18 products</p></a>
-        <a href="products.html" class="cat-card"><div class="cat-icon">🧴</div><h3>Moisturizers</h3><p>15 products</p></a>
-        <a href="products.html" class="cat-card"><div class="cat-icon">☀️</div><h3>Sunscreens</h3><p>14 products</p></a>
-        <a href="products.html" class="cat-card"><div class="cat-icon">✨</div><h3>Exfoliants</h3><p>9 products</p></a>
-        <a href="products.html" class="cat-card"><div class="cat-icon">🎯</div><h3>Treatments</h3><p>11 products</p></a>
-      </div>
-    </div>
-  </section>
-
-  <!-- Featured Products -->
-  <section class="section section-cream">
-    <div class="container">
-      <div class="section-header reveal">
-        <div>
-          <span class="eyebrow">Featured • Trusted Brands</span>
-          <h2>Customer Favorites</h2>
-        </div>
-        <div class="filter-bar" style="margin:0;">
-          <button class="filter-btn active" data-filter="All">All</button>
-          <button class="filter-btn" data-filter="Cleansers">Cleansers</button>
-          <button class="filter-btn" data-filter="Serums">Serums</button>
-          <button class="filter-btn" data-filter="Moisturizers">Moisturizers</button>
-          <button class="filter-btn" data-filter="Sunscreens">Sunscreens</button>
-        </div>
-      </div>
-      <div class="product-grid" id="featuredGrid"></div>
-      <div style="text-align:center; margin-top:40px;" class="reveal">
-        <a href="products.html" class="btn btn-primary btn-lg">View All Products →</a>
-        <p style="margin-top:14px; color:var(--text-muted); font-size:0.88rem;">Authentic products • 7-day returns on unopened items • Paystack secure</p>
-      </div>
-    </div>
-  </section>
-
-  <!-- Why Choose -->
-  <section class="section">
-    <div class="container">
-      <div class="reveal" style="max-width:720px;">
-        <span class="eyebrow">Why GlowLab</span>
-        <h2 class="display" style="font-size:clamp(1.9rem,3.5vw,2.8rem);">Skincare Shouldn't Be <em>Confusing</em></h2>
-        <p class="lead" style="margin-top:14px;">We're a Lagos-based team obsessed with making trusted skincare simple, accessible and effective for Nigerian skin.</p>
-      </div>
-      <div class="why-grid stagger">
-        <div class="why-card"><div class="why-icon">✅</div><h3>Authentic Products Only</h3><p>100% genuine from CeraVe, La Roche-Posay, Beauty of Joseon, The Ordinary, COSRX & more. No fakes, ever.</p></div>
-        <div class="why-card"><div class="why-icon">🎓</div><h3>Expert Guidance</h3><p>Educational content and routine building tailored to your skin type, concerns and climate.</p></div>
-        <div class="why-card"><div class="why-icon">🚚</div><h3>Fast Nationwide Delivery</h3><p>Lagos: 1-3 business days. Outside Lagos: 3-7 business days. Tracked and reliable.</p></div>
-        <div class="why-card"><div class="why-icon">🔒</div><h3>Secure Payments</h3><p>Paystack, debit cards & bank transfer. Your payment info is always protected.</p></div>
-        <div class="why-card"><div class="why-icon">🤖</div><h3>AI-Powered Recommendations</h3><p>Meet Lumi — get instant, personalized product picks based on your skin.</p></div>
-        <div class="why-card"><div class="why-icon">💬</div><h3>Friendly Support</h3><p>Mon-Sat 9AM-6PM human support + Lumi 24/7 for skincare questions and orders.</p></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Meet Lumi -->
-  <section class="section lumi" id="lumi">
-    <div class="container lumi-grid">
-      <div class="reveal">
-        <span class="eyebrow" style="background:rgba(255,255,255,0.12); color:#B7CAB9;">Meet Lumi • Your AI Skincare Advisor</span>
-        <h2 class="lumi-title">Skincare guidance that <span>never sleeps.</span></h2>
-        <p class="lumi-desc">Lumi is your 24/7 AI advisor trained on GlowLab’s catalog. Get instant help without the overwhelm of 10 tabs open.</p>
-        <ul class="lumi-list">
-          <li>Find products for your skin type</li>
-          <li>Build simple morning & night routines</li>
-          <li>Explain ingredients in plain English</li>
-          <li>Answer FAQs on shipping & returns</li>
-          <li>Recommend for acne & hyperpigmentation</li>
-          <li>Escalate medical concerns to a human</li>
-        </ul>
-        <div style="display:flex; gap:12px; flex-wrap:wrap;">
-          <button class="btn btn-sage btn-lg" data-chat-lumi>💬 Chat With Lumi Now</button>
-          <a href="faq.html" class="btn btn-secondary btn-lg" style="background:rgba(255,255,255,0.08); color:white; border-color:rgba(255,255,255,0.18);">See how Lumi helps →</a>
-        </div>
-        <p style="margin-top:18px; color:rgba(255,255,255,0.5); font-size:0.82rem; line-height:1.6;">Lumi does not diagnose medical conditions and does not replace professional medical advice. For severe concerns, please see a dermatologist.</p>
-      </div>
-      <div class="lumi-card reveal">
-        <div style="display:flex; align-items:center; gap:12px; margin-bottom:18px;">
-          <div style="width:44px;height:44px; border-radius:50%; background:#9AB19F; display:grid; place-items:center; color:white; font-weight:700;">L</div>
-          <div><strong style="color:white;">Lumi</strong><small style="display:block; color:rgba(255,255,255,0.6); line-height:1;">AI Skincare Advisor • Online</small></div>
-          <span style="margin-left:auto; width:8px;height:8px; background:#4ade80; border-radius:50%; box-shadow:0 0 0 6px rgba(74,222,128,0.18);"></span>
-        </div>
-        <div class="lumi-chat-preview">
-          <div class="chat-bubble">Hi! I'm Lumi 🌿 Tell me your skin type and concern, I'll build you a routine.</div>
-          <div class="chat-bubble user">I have oily skin and acne marks 😩</div>
-          <div class="chat-bubble">Got you! For oily + hyperpigmentation, I'd start with CeraVe Foaming Cleanser → The Ordinary Niacinamide → Garnier Vitamin C (AM) + BoJ Sunscreen. Want prices?</div>
-          <div class="chat-dots"><span></span><span></span><span></span></div>
-        </div>
-          <!-- Lumi Botpress AI -->
-  <script src="https://cdn.botpress.cloud/webchat/v5.0/inject.js"></script>
-  <script src="https://files.bpcontent.cloud/2026/08/03/16/20260803163101-9AO2BMBO.js" defer></script>
-        <div style="margin-top:18px; display:flex; gap:10px; align-items:center; color:rgba(255,255,255,0.6); font-size:0.84rem;">
-          <span>🔒 Secure • No medical diagnosis • Human handoff available</span>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Newsletter / Trust -->
-  <section class="section section-cream">
-    <div class="container" style="display:grid; grid-template-columns: 1.1fr 0.9fr; gap:32px; align-items:center;">
-      <div class="reveal">
-        <h3 style="font-size:clamp(1.6rem,3vw,2.2rem); max-width:22ch;">Join 3,200+ Nigerians building better routines.</h3>
-        <p style="color:var(--text-muted); margin:10px 0 0; max-width:44ch;">Get beginner tips, new arrivals, and Lumi’s weekly routine ideas. No spam.</p>
-      </div>
-      <div class="reveal">
-        <div style="display:flex; gap:10px;">
-          <input class="input" placeholder="Your email address" style="flex:1;" />
-          <button class="btn btn-primary" onclick="document.getElementById('toast').textContent='Thanks! Welcome to GlowLab 💚'; document.getElementById('toast').classList.add('show'); setTimeout(()=>document.getElementById('toast').classList.remove('show'), 3000);">Join</button>
-        </div>
-        <p style="font-size:0.8rem; color:var(--text-light); margin-top:10px;">By joining, you agree to our Privacy Policy. Unsubscribe anytime.</p>
-      </div>
-    </div>
-  </section>
-
-  <!-- Footer -->
-  <footer class="footer">
-    <div class="container">
-      <div class="footer-grid">
-        <div>
-          <a href="index.html" class="logo" style="margin-bottom:14px;"><span class="logo-mark">G</span> GlowLab <span>Skincare</span></a>
-          <p style="max-width:34ch; margin-top:12px;">Modern skincare store based in Lagos. We curate authentic products and make routines simple with Lumi, our AI advisor.</p>
-          <div class="socials">
-            <a href="#" aria-label="Instagram">IG</a>
-            <a href="#" aria-label="LinkedIn">IN</a>
-            <a href="#" aria-label="TikTok">TT</a>
+    </nav>
+    <!-- Hero -->
+    <section class="hero" id="main">
+      <div class="container hero-grid">
+        <div class="hero-content reveal">
+          <span class="eyebrow">Thoughtful skincare · A simpler everyday</span>
+          <h1 class="display hero-title">
+            Healthy Skin Starts With The <em>Right Routine</em>
+          </h1>
+          <p class="hero-desc">
+            Less guesswork. More care. Explore our curated demo collection and
+            build a simple routine with Lumi, your AI shopping companion.
+          </p>
+          <div class="hero-ctas">
+            <a class="btn btn-primary btn-lg" href="products.html"
+              >Shop Products →</a
+            >
+            <button class="btn btn-secondary btn-lg" data-chat-lumi="">
+              ✨ Chat With Lumi
+            </button>
           </div>
         </div>
-        <div>
-          <h4>Shop</h4>
-          <div class="footer-links"><a href="products.html">All Products</a><a href="products.html">Cleansers</a><a href="products.html">Serums</a><a href="products.html">Sunscreens</a><a href="products.html">Moisturizers</a></div>
-        </div>
-        <div>
-          <h4>Help</h4>
-          <div class="footer-links"><a href="faq.html">FAQs</a><a href="contact.html">Contact Us</a><a href="faq.html#shipping">Shipping & Delivery</a><a href="faq.html#returns">Returns</a><a href="#">Privacy Policy</a><a href="#">Terms & Conditions</a></div>
-        </div>
-        <div>
-          <h4>Contact</h4>
-          <div class="footer-links">
-            <span>Lagos, Nigeria</span>
-            <span>hello@glowlab.ng</span>
-            <span>+234 801 234 5678</span>
-            <span>Mon - Sat 9AM - 6PM WAT</span>
-            <span style="margin-top:8px; display:inline-block; padding:6px 12px; background:var(--sage-light); border-radius:999px; font-size:0.8rem; color:var(--sage-dark); font-weight:600;">Paystack • Cards • Transfer</span>
+        <div class="hero-visual reveal">
+          <div class="hero-img-wrap">
+            <img alt="GlowLab Hero" src="images/hero.jpg" />
           </div>
         </div>
       </div>
-      <div class="footer-bottom">
-        <span>© <span id="year">2026</span> GlowLab Skincare. All rights reserved.</span>
-        <span>Built for portfolio demo • Prices in NGN</span>
-      </div>
-      <div class="footer-note">GlowLab Skincare is a fictional brand created to demonstrate an AI-powered customer support and product recommendation system built with Botpress. Products and testimonials are for demo purposes.</div>
-    </div>
-  </footer>
-
-  <!-- Product Modal -->
-  <div class="modal-backdrop" id="productModal" aria-hidden="true">
-    <div class="modal">
-      <button class="modal-close" data-close-modal aria-label="Close">✕</button>
-      <div class="modal-grid">
-        <div class="modal-img"><img id="modalImg" src="" alt="" /></div>
-        <div class="modal-body">
-          <div style="font-size:0.72rem; letter-spacing:0.12em; text-transform:uppercase; font-weight:700; color:var(--text-light);" id="modalBrand"></div>
-          <h2 id="modalName" style="font-size:1.4rem; margin:8px 0 10px; line-height:1.25;"></h2>
-          <div id="modalPrice" style="font-weight:700; font-size:1.15rem; margin-bottom:14px;"></div>
-          <p id="modalDesc" style="color:var(--text-muted); font-size:0.96rem; line-height:1.6; margin-bottom:18px;"></p>
-          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:18px;">
-            <div style="background:var(--warm-cream); padding:12px 14px; border-radius:12px; border:1px solid var(--warm-cream-border);"><small style="display:block; font-size:0.7rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-light); font-weight:700;">Skin Type</small><strong id="modalSkin" style="font-size:0.9rem;"></strong></div>
-            <div style="background:var(--sage-lighter); padding:12px 14px; border-radius:12px; border:1px solid #dde8df;"><small style="display:block; font-size:0.7rem; letter-spacing:0.08em; text-transform:uppercase; color:var(--sage-dark); font-weight:700;">Concern</small><strong id="modalConcern" style="font-size:0.9rem;"></strong></div>
+    </section>
+    <!-- Categories -->
+    <section class="section" id="categories">
+      <div class="container">
+        <div class="section-header reveal">
+          <div>
+            <span class="eyebrow">Shop by Category</span>
+            <h2>Find Your Perfect Match</h2>
           </div>
-          <div style="margin-bottom:16px;"><small style="font-weight:700; font-size:0.8rem; letter-spacing:0.08em; text-transform:uppercase;">How to use</small><p id="modalHowTo" style="font-size:0.9rem; margin-top:6px; color:var(--text-muted);"></p></div>
-          <div style="margin-bottom:20px;"><small style="font-weight:700; font-size:0.8rem; letter-spacing:0.08em; text-transform:uppercase;">Key Ingredients</small><ul id="modalIngredients" style="margin-top:8px; display:flex; flex-wrap:wrap; gap:8px; list-style:none;"><!-- JS inject --></ul></div>
-          <div style="display:flex; gap:10px;">
-            <button class="btn btn-primary" style="flex:1;" data-chat-lumi>Ask Lumi about this →</button>
-            <button class="btn btn-secondary" data-close-modal>Close</button>
-          </div>
-          <p style="font-size:0.78rem; color:var(--text-light); margin-top:12px;">Category: <span id="modalCategory"></span> • 7-day returns if unopened • Lagos 1-3 days</p>
+          <p class="lead">
+            Browse by category, compare prices, and check product packaging
+            before deciding what belongs in your routine.
+          </p>
+        </div>
+        <div class="cat-grid stagger">
+          <a class="cat-card" href="products.html?category=Cleansers"
+            ><div class="cat-icon" aria-hidden="true">
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <rect x="7" y="7" width="10" height="14" rx="3" />
+                <path d="M9 7V3h6v4M10 13h4" />
+              </svg>
+            </div>
+            <h3>Cleansers</h3></a
+          >
+          <a class="cat-card" href="products.html?category=Serums"
+            ><div class="cat-icon" aria-hidden="true">
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M12 3s-6 7-6 11a6 6 0 0 0 12 0c0-4-6-11-6-11Z" />
+              </svg>
+            </div>
+            <h3>Serums</h3></a
+          >
+          <a class="cat-card" href="products.html?category=Moisturizers"
+            ><div class="cat-icon" aria-hidden="true">
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M5 10h14l-1 10H6L5 10ZM7 6h10v4H7z" />
+              </svg>
+            </div>
+            <h3>Moisturizers</h3></a
+          >
+          <a class="cat-card" href="products.html?category=Sunscreens"
+            ><div class="cat-icon" aria-hidden="true">
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <circle cx="12" cy="12" r="4" />
+                <path
+                  d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M19 5l-1.5 1.5m-11 11L5 19"
+                />
+              </svg>
+            </div>
+            <h3>Sunscreens</h3></a
+          >
+          <a class="cat-card" href="products.html?category=Exfoliants"
+            ><div class="cat-icon" aria-hidden="true">
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path
+                  d="m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5L12 3Z"
+                />
+              </svg>
+            </div>
+            <h3>Exfoliants</h3></a
+          >
+          <a class="cat-card" href="products.html?category=Treatments"
+            ><div class="cat-icon" aria-hidden="true">
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path
+                  d="M8 4h8m-6 0v7l-5 8a1 1 0 0 0 1 2h12a1 1 0 0 0 1-2l-5-8V4M8 15h8"
+                />
+              </svg>
+            </div>
+            <h3>Treatments</h3></a
+          >
         </div>
       </div>
+    </section>
+    <!-- Featured Products -->
+    <section class="section section-cream">
+      <div class="container">
+        <div class="section-header reveal">
+          <div>
+            <span class="eyebrow">Featured • The collection</span>
+            <h2>Everyday Essentials</h2>
+          </div>
+          <div class="filter-bar" style="margin: 0">
+            <button class="filter-btn active" data-filter="All">All</button>
+            <button class="filter-btn" data-filter="Cleansers">
+              Cleansers
+            </button>
+            <button class="filter-btn" data-filter="Serums">Serums</button>
+            <button class="filter-btn" data-filter="Moisturizers">
+              Moisturizers
+            </button>
+            <button class="filter-btn" data-filter="Sunscreens">
+              Sunscreens
+            </button>
+          </div>
+        </div>
+        <div class="product-grid" id="featuredGrid"></div>
+        <div class="reveal" style="text-align: center; margin-top: 40px">
+          <a class="btn btn-primary btn-lg" href="products.html"
+            >View All Products →</a
+          >
+          <p
+            style="
+              margin-top: 14px;
+              color: var(--text-muted);
+              font-size: 0.88rem;
+            "
+          >
+            Existing demo catalogue · Clear prices · Simulated checkout
+          </p>
+        </div>
+      </div>
+    </section>
+    <!-- Why Choose -->
+    <section class="section">
+      <div class="container">
+        <div class="reveal" style="max-width: 720px">
+          <span class="eyebrow">Why GlowLab</span>
+          <h2 class="display" style="font-size: clamp(1.9rem, 3.5vw, 2.8rem)">
+            Skincare Shouldn't Be <em>Confusing</em>
+          </h2>
+          <p class="lead" style="margin-top: 14px">
+            Explore a few everyday essentials, compare the catalogue, and build
+            a routine at your own pace. Every checkout here is clearly
+            simulated.
+          </p>
+        </div>
+        <div class="why-grid stagger">
+          <div class="why-card">
+            <div class="why-icon" aria-hidden="true">
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <rect x="7" y="7" width="10" height="14" rx="3" />
+                <path d="M9 7V3h6v4M10 13h4" />
+              </svg>
+            </div>
+            <h3>A little guidance</h3>
+            <p>
+              Explore basic routine suggestions. Ingredients and suitability
+              still need checking against the manufacturer’s packaging.
+            </p>
+          </div>
+          <div class="why-card">
+            <div class="why-icon" aria-hidden="true">
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M12 3s-6 7-6 11a6 6 0 0 0 12 0c0-4-6-11-6-11Z" />
+              </svg>
+            </div>
+            <h3>A complete demo journey</h3>
+            <p>
+              Build a cart, place a simulated order, and find its confirmation
+              right here.
+            </p>
+          </div>
+          <div class="why-card">
+            <div class="why-icon" aria-hidden="true">
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M5 10h14l-1 10H6L5 10ZM7 6h10v4H7z" />
+              </svg>
+            </div>
+            <h3>AI-Powered Recommendations</h3>
+            <p>
+              Explore catalogue-backed suggestions, with your preferences and
+              budget in mind.
+            </p>
+          </div>
+          <div class="why-card">
+            <div class="why-icon" aria-hidden="true">
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <circle cx="12" cy="12" r="4" />
+                <path
+                  d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M19 5l-1.5 1.5m-11 11L5 19"
+                />
+              </svg>
+            </div>
+            <h3>Friendly Support</h3>
+            <p>
+              Record a demo support ticket through Contact or ask Lumi to help
+              prepare one.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+    <!-- Meet Lumi -->
+    <section class="section lumi" id="lumi">
+      <div class="container lumi-grid">
+        <div class="reveal">
+          <span
+            class="eyebrow"
+            style="background: rgba(255, 255, 255, 0.12); color: #b7cab9"
+            >Meet Lumi • Your AI Skincare Advisor</span
+          >
+          <h2 class="lumi-title">
+            Skincare guidance that <span>never sleeps.</span>
+          </h2>
+          <p class="lumi-desc">
+            Lumi uses Gemini and backend tools to find real catalogue records. A
+            few useful questions, a simpler routine, and you stay in control.
+          </p>
+          <ul class="lumi-list">
+            <li>Find products for your skin type</li>
+            <li>Build simple morning &amp; night routines</li>
+            <li>Explain ingredients in plain English</li>
+            <li>Answer FAQs on shipping &amp; returns</li>
+            <li>Recommend for acne &amp; hyperpigmentation</li>
+            <li>Suggest professional care for concerning symptoms</li>
+          </ul>
+          <div style="display: flex; gap: 12px; flex-wrap: wrap">
+            <button class="btn btn-sage btn-lg" data-chat-lumi="">
+              💬 Chat With Lumi Now
+            </button>
+            <a
+              class="btn btn-secondary btn-lg"
+              href="faq.html"
+              style="
+                background: rgba(255, 255, 255, 0.08);
+                color: white;
+                border-color: rgba(255, 255, 255, 0.18);
+              "
+              >See how Lumi helps →</a
+            >
+          </div>
+          <p
+            style="
+              margin-top: 18px;
+              color: rgba(255, 255, 255, 0.5);
+              font-size: 0.82rem;
+              line-height: 1.6;
+            "
+          >
+            Lumi does not diagnose medical conditions and does not replace
+            professional medical advice. For severe concerns, please see a
+            dermatologist.
+          </p>
+        </div>
+        <div class="lumi-card reveal">
+          <div
+            style="
+              display: flex;
+              align-items: center;
+              gap: 12px;
+              margin-bottom: 18px;
+            "
+          >
+            <div
+              style="
+                width: 44px;
+                height: 44px;
+                border-radius: 50%;
+                background: #9ab19f;
+                display: grid;
+                place-items: center;
+                color: white;
+                font-weight: 700;
+              "
+            >
+              L
+            </div>
+            <div>
+              <strong style="color: white">Lumi</strong
+              ><small
+                style="
+                  display: block;
+                  color: rgba(255, 255, 255, 0.6);
+                  line-height: 1;
+                "
+                >AI Skincare Advisor • Online</small
+              >
+            </div>
+            <span
+              style="
+                margin-left: auto;
+                width: 8px;
+                height: 8px;
+                background: #4ade80;
+                border-radius: 50%;
+                box-shadow: 0 0 0 6px rgba(74, 222, 128, 0.18);
+              "
+            ></span>
+          </div>
+          <div class="lumi-chat-preview">
+            <div class="product-brand">A little help from Lumi</div>
+            <h3 style="margin: 14px 0">Your routine. Your choices.</h3>
+            <p style="font-size: 0.9rem">
+              01 · Tell Lumi your skin type and budget.
+            </p>
+            <p style="font-size: 0.9rem; margin: 14px 0">
+              02 · Review morning and evening essentials from our catalogue.
+            </p>
+            <p style="font-size: 0.9rem">
+              03 · Choose what goes in your cart. Nothing is added without you.
+            </p>
+            <button
+              class="btn btn-primary"
+              data-chat-lumi=""
+              style="margin-top: 20px"
+            >
+              Let’s find your routine ↗
+            </button>
+          </div>
+          <div
+            style="
+              margin-top: 18px;
+              display: flex;
+              gap: 10px;
+              align-items: center;
+              color: rgba(255, 255, 255, 0.6);
+              font-size: 0.84rem;
+            "
+          >
+            <span>Catalogue-backed suggestions · No medical diagnosis</span>
+          </div>
+        </div>
+      </div>
+    </section>
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="container">
+        <div class="footer-grid">
+          <div>
+            <a class="logo" href="index.html"
+              ><span class="logo-mark">G</span> GlowLab</a
+            >
+            <p style="max-width: 35ch; margin-top: 16px">
+              Thoughtful skincare. A routine that feels like you. Discover the
+              GlowLab demo, with a little help from Lumi.
+            </p>
+          </div>
+          <div>
+            <h4>Explore</h4>
+            <div class="footer-links">
+              <a href="products.html">The collection</a
+              ><a href="about.html">Our approach</a
+              ><a href="cart.html">Your cart</a>
+            </div>
+          </div>
+          <div>
+            <h4>Here to help</h4>
+            <div class="footer-links">
+              <a href="faq.html">Questions &amp; answers</a
+              ><a href="contact.html">Contact &amp; support</a
+              ><button class="text-link" data-chat-lumi="">Ask Lumi</button>
+            </div>
+          </div>
+          <div>
+            <h4>The details</h4>
+            <div class="footer-links">
+              <a href="policies.html">Store policies</a
+              ><a href="policies.html#privacy">Privacy &amp; demo terms</a
+              ><span>Prices in Nigerian naira</span>
+            </div>
+          </div>
+        </div>
+        <div class="footer-bottom">
+          <span>© <span id="year"></span> GlowLab Skincare</span
+          ><span>A fictional storefront · no money charged</span>
+        </div>
+        <div class="footer-note">
+          Demo catalogue and imagery are retained from the original project.
+          Product formulations and usage have not been independently verified.
+          Check the manufacturer’s packaging; Lumi offers shopping guidance, not
+          medical advice. Use fictional personal details when testing.
+        </div>
+      </div>
+    </footer>
+    <!-- Product Modal -->
+    <div class="modal-backdrop" id="productModal">
+      <section
+        aria-labelledby="modalName"
+        aria-modal="true"
+        class="modal"
+        role="dialog"
+        tabindex="-1"
+      >
+        <button
+          aria-label="Close product details"
+          class="modal-close"
+          data-close-modal=""
+        >
+          ×
+        </button>
+        <div class="modal-grid">
+          <div class="modal-img"><img alt="" id="modalImg" /></div>
+          <div class="modal-body">
+            <div class="product-brand" id="modalBrand"></div>
+            <h2 id="modalName"></h2>
+            <p class="price" id="modalPrice"></p>
+            <p id="modalDesc"></p>
+            <p id="modalAvailability"></p>
+            <div class="detail-note">
+              <h3>Ingredients &amp; usage</h3>
+              <p id="modalVerified"></p>
+            </div>
+            <p id="modalHowTo"></p>
+            <ul id="modalIngredients"></ul>
+            <button class="btn btn-primary" id="modalAdd">Add to cart</button
+            ><button class="text-link" data-chat-lumi="">
+              Ask Lumi a question ↗
+            </button>
+            <p class="small">Demo catalogue · simulated checkout</p>
+          </div>
+        </div>
+      </section>
     </div>
-  </div>
-
-  <button id="backToTop" aria-label="Back to top">↑</button>
-  <div class="toast" id="toast">Coming soon</div>
-
-  <script src="js/script.js"></script>
-</body>
+    <button aria-label="Back to top" id="backToTop">↑</button>
+    <div class="toast" id="toast" role="status"></div>
+    <script defer="" src="js/script.js"></script>
+  </body>
 </html>

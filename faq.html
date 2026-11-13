@@ -1,91 +1,434 @@
-<!DOCTYPE html>
+<!doctype html>
+
 <html lang="en">
-<head>
-  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>FAQs | GlowLab Skincare Nigeria - Shipping, Payments, Skincare Advice</title>
-  <link rel="stylesheet" href="css/style.css" />
-</head>
-<body>
-  <nav class="nav">
-    <div class="container nav-inner">
-      <a href="index.html" class="logo"><span class="logo-mark">G</span> GlowLab <span>Skincare</span></a>
-      <div class="nav-links"><a href="index.html">Home</a><a href="products.html">Products</a><a href="about.html">About</a><a href="faq.html">FAQ</a><a href="contact.html">Contact</a></div>
-      <div class="nav-actions"><button class="btn btn-sage" data-chat-lumi>Chat With Lumi</button><button class="mobile-toggle" id="mobileToggle" aria-label="Toggle menu" aria-expanded="false">☰</button></div>
+  <head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>
+      FAQs | GlowLab Skincare Nigeria - Shipping, Payments, Skincare Advice
+    </title>
+    <link href="css/style.css" rel="stylesheet" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <div class="demo-bar">
+      A little guidance. A simpler routine.
+      <span>Demo store · no real payments or deliveries</span>
     </div>
-    <div class="mobile-menu" id="mobileMenu"><a href="index.html">Home</a><a href="products.html">Products</a><a href="about.html">About</a><a href="faq.html">FAQ</a><a href="contact.html">Contact</a><button class="btn btn-primary btn-lg" data-chat-lumi>💬 Chat With Lumi</button></div>
-  </nav>
-
-  <section class="section" style="padding-bottom:24px;">
-    <div class="container" style="max-width:900px;">
-      <div class="reveal" style="text-align:center;">
-        <span class="eyebrow">Support • 24/7 with Lumi + Human Mon-Sat</span>
-        <h1 class="display" style="font-size:clamp(2rem,4.5vw,3.4rem);">Answers to your skincare questions</h1>
-        <p class="lead" style="margin:16px auto 0; max-width:56ch;">Shipping, payments, returns, acne, hyperpigmentation, sunscreen, vitamin C, retinol — all covered. Still stuck? Chat with Lumi instantly.</p>
-      </div>
-    </div>
-  </section>
-
-  <section class="section section-cream" style="padding-top:24px;">
-    <div class="container faq-layout">
-      <div class="faq-cats reveal">
-        <div style="font-size:0.8rem; letter-spacing:0.1em; text-transform:uppercase; font-weight:700; color:var(--text-light); margin-bottom:14px; padding:0 16px;">Categories</div>
-        <button class="active" data-faq-cat="All">All Questions</button>
-        <button data-faq-cat="Shipping">Shipping & Delivery</button>
-        <button data-faq-cat="Payments">Payments</button>
-        <button data-faq-cat="Returns">Returns</button>
-        <button data-faq-cat="Products">Products</button>
-        <button data-faq-cat="Skincare">Skincare Advice</button>
-        <button data-faq-cat="Lumi">Lumi AI</button>
-        <div style="margin-top:22px; background:white; border:1px solid var(--border); border-radius:16px; padding:16px;">
-          <strong style="font-size:0.95rem;">Need instant help?</strong>
-          <p style="font-size:0.86rem; color:var(--text-muted); margin:6px 0 12px; line-height:1.5;">Lumi can answer shipping, returns, product recs in seconds.</p>
-          <button class="btn btn-sage" style="width:100%;" data-chat-lumi>Chat With Lumi</button>
+    <nav aria-label="Main navigation" class="nav">
+      <div class="container nav-inner">
+        <a aria-label="GlowLab home" class="logo" href="index.html"
+          ><span class="logo-mark">G</span> GlowLab <span>Skincare</span></a
+        >
+        <div class="nav-links">
+          <a href="index.html">Home</a><a href="products.html">Products</a
+          ><a href="about.html">About</a><a href="faq.html">FAQ</a
+          ><a href="contact.html">Contact</a>
+        </div>
+        <div class="nav-actions">
+          <a class="nav-cart" href="cart.html"
+            >Cart <span data-cart-count="">0</span></a
+          ><button class="btn btn-primary" data-chat-lumi="">
+            Chat With Lumi ↗</button
+          ><button
+            aria-controls="mobileMenu"
+            aria-expanded="false"
+            aria-label="Toggle menu"
+            class="mobile-toggle"
+            id="mobileToggle"
+          >
+            ☰
+          </button>
         </div>
       </div>
-
-      <div class="reveal">
-        <!-- Shipping -->
-        <div id="shipping" class="faq-item open" data-category="Shipping"><button class="faq-q">How long does delivery take in Nigeria?</button><div class="faq-a"><div class="faq-a-inner">Lagos: 1–3 business days. Outside Lagos: 3–7 business days. You’ll get a tracking link once shipped. Delivery times can vary slightly during holidays or heavy rain. We partner with reliable couriers nationwide.</div></div></div>
-        <div class="faq-item" data-category="Shipping"><button class="faq-q">Do you deliver to all states?</button><div class="faq-a"><div class="faq-a-inner">Yes, GlowLab delivers nationwide across Nigeria — from Abuja to Port Harcourt, Kano, Ibadan, Enugu and more. Shipping fee is calculated at checkout based on location and weight.</div></div></div>
-        <div class="faq-item" data-category="Shipping"><button class="faq-q">How can I track my order?</button><div class="faq-a"><div class="faq-a-inner">After shipment, you’ll receive an SMS and email with a tracking link. You can also ask Lumi “Where is my order?” with your order ID, or contact support Mon-Sat 9AM-6PM.</div></div></div>
-
-        <!-- Payments -->
-        <div class="faq-item" data-category="Payments"><button class="faq-q">What payment methods do you accept?</button><div class="faq-a"><div class="faq-a-inner">We accept Paystack secure payments — this includes debit cards (Verve, Mastercard, Visa), bank transfer and more. All payments are encrypted and secure.</div></div></div>
-        <div class="faq-item" data-category="Payments"><button class="faq-q">Is my payment information safe?</button><div class="faq-a"><div class="faq-a-inner">Absolutely. We use Paystack, which is PCI DSS compliant and trusted by thousands of Nigerian businesses. We never store your card details on our servers.</div></div></div>
-
-        <!-- Returns -->
-        <div id="returns" class="faq-item" data-category="Returns"><button class="faq-q">What is your return policy?</button><div class="faq-a"><div class="faq-a-inner">Unopened products can be returned within 7 days of delivery, in original packaging. Due to hygiene, opened skincare cannot be returned unless damaged in transit. Please contact support within 48 hours with photos if damaged.</div></div></div>
-
-        <!-- Products -->
-        <div class="faq-item" data-category="Products"><button class="faq-q">Are your products authentic?</button><div class="faq-a"><div class="faq-a-inner">Yes, 100% authentic. We source only from authorized distributors for CeraVe, Cetaphil, La Roche-Posay, Beauty of Joseon, COSRX, The Ordinary, Skin1004, Eucerin, Neutrogena, Paula’s Choice, Garnier and Vichy. Batch codes can be verified.</div></div></div>
-        <div class="faq-item" data-category="Products"><button class="faq-q">How do I know which product is right for me?</button><div class="faq-a"><div class="faq-a-inner">Tell Lumi your skin type (oily, dry, sensitive, combination) and concern (acne, hyperpigmentation, dullness, etc.). She’ll recommend products based on GlowLab’s catalog. You can also start with our category filters on the Shop page.</div></div></div>
-
-        <!-- Skincare Advice -->
-        <div class="faq-item" data-category="Skincare"><button class="faq-q">I have acne — what routine should I start with?</button><div class="faq-a"><div class="faq-a-inner">For acne-prone, oily skin beginners: AM = Gentle cleanser (CeraVe Foaming) + Niacinamide + Sunscreen (Eucerin Oil Control). PM = Cleanser + BHA exfoliant 2-3x/week (Paula’s Choice) + Lightweight moisturizer. Always patch test and introduce one product at a time. Ask Lumi for a personalized plan.</div></div></div>
-        <div class="faq-item" data-category="Skincare"><button class="faq-q">How do I fade hyperpigmentation and dark spots?</button><div class="faq-a"><div class="faq-a-inner">Consistency + sun protection is key. Ingredients like Vitamin C (Garnier), Niacinamide (The Ordinary), and gentle exfoliation (BHA) can help visibly brighten over 4-8 weeks. Sunscreen daily (BoJ Relief Sun or LRP Anthelios) is non-negotiable to prevent further darkening. Lumi can build a routine around your budget.</div></div></div>
-        <div class="faq-item" data-category="Skincare"><button class="faq-q">Do I really need sunscreen if I have dark skin?</button><div class="faq-a"><div class="faq-a-inner">Yes — everyone needs sunscreen. Melanin provides some natural protection but not enough. Sunscreen helps prevent hyperpigmentation, premature aging and skin damage. Our sunscreens like Beauty of Joseon Relief Sun have zero white cast on deep tones.</div></div></div>
-        <div class="faq-item" data-category="Skincare"><button class="faq-q">How do I use Vitamin C serum?</button><div class="faq-a"><div class="faq-a-inner">Use Vitamin C in the morning after cleansing, before moisturizer and sunscreen. 3-4 drops is enough. Store in cool, dark place. If you’re new, start with Garnier Vitamin C Serum (gentler) and always follow with SPF50+ in the day. Avoid mixing with retinol or strong AHAs in the same routine unless advised.</div></div></div>
-        <div class="faq-item" data-category="Skincare"><button class="faq-q">What about retinol? Is it good for beginners?</button><div class="faq-a"><div class="faq-a-inner">Retinol is powerful for texture, acne and fine lines but can irritate beginners. Start slowly: 1-2x/week at night, pea-sized amount, moisturize well, and use sunscreen daily (retinol increases sun sensitivity). If you have sensitive skin, Centella or Niacinamide may be better first steps. Ask Lumi or a dermatologist before starting high-strength retinol.</div></div></div>
-
-        <!-- Lumi -->
-        <div class="faq-item" data-category="Lumi"><button class="faq-q">Who is Lumi and how can she help?</button><div class="faq-a"><div class="faq-a-inner">Lumi is GlowLab’s AI skincare advisor available 24/7. She helps you: find products by skin type/concern, build AM/PM routines, explain ingredients in simple terms, answer FAQs on shipping/returns/payments, and escalate complex medical concerns to a human rep.</div></div></div>
-        <div class="faq-item" data-category="Lumi"><button class="faq-q">Can Lumi diagnose my skin condition?</button><div class="faq-a"><div class="faq-a-inner">No. Lumi is for educational and shopping guidance only. She does not diagnose medical conditions and does not replace professional medical advice. For severe, painful or persistent skin issues, please see a dermatologist or healthcare professional.</div></div></div>
-        <div class="faq-item" data-category="Lumi"><button class="faq-q">How do I chat with Lumi?</button><div class="faq-a"><div class="faq-a-inner">Click any “Chat With Lumi” button on the site. The Botpress widget will open (once connected). You can ask things like: “I have oily skin and dark spots, budget 15k” or “Is CeraVe good for sensitive skin?” Lumi replies instantly.</div></div></div>
-
-        <div style="margin-top:36px; padding:24px; border:1px dashed var(--warm-cream-border); border-radius:16px; background:white; text-align:center;">
-          <h3 style="font-size:1.15rem;">Still have a question?</h3>
-          <p style="color:var(--text-muted); font-size:0.94rem; margin:8px 0 16px;">Humans available Mon-Sat 9AM-6PM • Lumi available 24/7</p>
-          <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;"><a href="contact.html" class="btn btn-primary">Contact Support</a><button class="btn btn-secondary" data-chat-lumi>Chat With Lumi</button></div>
+      <div class="mobile-menu" id="mobileMenu">
+        <a href="index.html">Home</a><a href="products.html">Products</a
+        ><a href="about.html">About</a><a href="faq.html">FAQ</a
+        ><a href="contact.html">Contact</a
+        ><a href="cart.html">Cart <span data-cart-count="">0</span></a
+        ><button class="btn btn-primary" data-chat-lumi="">
+          Chat With Lumi ↗
+        </button>
+      </div>
+    </nav>
+    <section class="section" id="main" style="padding-bottom: 24px">
+      <div class="container" style="max-width: 900px">
+        <div class="reveal" style="text-align: center">
+          <span class="eyebrow">A little clarity goes a long way</span>
+          <h1 class="display" style="font-size: clamp(2rem, 4.5vw, 3.4rem)">
+            Answers to your skincare questions
+          </h1>
+          <p class="lead" style="margin: 16px auto 0; max-width: 56ch">
+            Shipping, payments, returns, acne, hyperpigmentation, sunscreen,
+            vitamin C, retinol — all covered. Still stuck? Chat with Lumi with
+            catalogue-backed guidance when connected.
+          </p>
         </div>
       </div>
+    </section>
+    <section class="section section-cream" style="padding-top: 24px">
+      <div class="container faq-layout">
+        <div class="faq-cats reveal">
+          <div
+            style="
+              font-size: 0.8rem;
+              letter-spacing: 0.1em;
+              text-transform: uppercase;
+              font-weight: 700;
+              color: var(--text-light);
+              margin-bottom: 14px;
+              padding: 0 16px;
+            "
+          >
+            Categories
+          </div>
+          <button class="active" data-faq-cat="All">All Questions</button>
+          <button data-faq-cat="Shipping">Shipping &amp; Delivery</button>
+          <button data-faq-cat="Payments">Payments</button>
+          <button data-faq-cat="Returns">Returns</button>
+          <button data-faq-cat="Products">Products</button>
+          <button data-faq-cat="Skincare">Skincare Advice</button>
+          <button data-faq-cat="Lumi">Lumi AI</button>
+          <div
+            style="
+              margin-top: 22px;
+              background: white;
+              border: 1px solid var(--border);
+              border-radius: 16px;
+              padding: 16px;
+            "
+          >
+            <strong style="font-size: 0.95rem">Have another question?</strong>
+            <p
+              style="
+                font-size: 0.86rem;
+                color: var(--text-muted);
+                margin: 6px 0 12px;
+                line-height: 1.5;
+              "
+            >
+              Lumi can answer shipping, returns, product recs with
+              catalogue-backed suggestions.
+            </p>
+            <button class="btn btn-sage" data-chat-lumi="" style="width: 100%">
+              Chat With Lumi
+            </button>
+          </div>
+        </div>
+        <div class="reveal">
+          <!-- Shipping -->
+          <div class="faq-item open" data-category="Shipping" id="shipping">
+            <button class="faq-q">
+              How long does delivery take in Nigeria?
+            </button>
+            <div class="faq-a">
+              <div class="faq-a-inner">
+                This is a demo store: no products are physically dispatched. The
+                original illustrative estimates were Lagos 1–3 business days and
+                outside Lagos 3–7 days; these are not delivery commitments.
+              </div>
+            </div>
+          </div>
+          <div class="faq-item" data-category="Shipping">
+            <button class="faq-q">Do you deliver to all states?</button>
+            <div class="faq-a">
+              <div class="faq-a-inner">
+                No real delivery takes place. Demo delivery costs ₦0 at
+                checkout.
+              </div>
+            </div>
+          </div>
+          <div class="faq-item" data-category="Shipping">
+            <button class="faq-q">How can I track my order?</button>
+            <div class="faq-a">
+              <div class="faq-a-inner">
+                Ask Lumi using your reference and checkout email in the same
+                browser that placed the order. No email, SMS or courier tracking
+                is generated.
+              </div>
+            </div>
+          </div>
+          <!-- Payments -->
+          <div class="faq-item" data-category="Payments">
+            <button class="faq-q">What payment methods do you accept?</button>
+            <div class="faq-a">
+              <div class="faq-a-inner">
+                Only simulated payment. No card or bank details are collected,
+                and no real money is charged.
+              </div>
+            </div>
+          </div>
+          <div class="faq-item" data-category="Payments">
+            <button class="faq-q">Is my payment information safe?</button>
+            <div class="faq-a">
+              <div class="faq-a-inner">
+                Do not enter any payment information. This demo does not process
+                real payments.
+              </div>
+            </div>
+          </div>
+          <!-- Returns -->
+          <div class="faq-item" data-category="Returns" id="returns">
+            <button class="faq-q">What is your return policy?</button>
+            <div class="faq-a">
+              <div class="faq-a-inner">
+                The retained illustrative policy allows unopened products in
+                original packaging within 7 days; opened skincare is excluded
+                unless damaged in transit. Report damage within 48 hours. This
+                demo records requests as support tickets; no physical return or
+                monetary refund occurs.
+              </div>
+            </div>
+          </div>
+          <!-- Products -->
+          <div class="faq-item" data-category="Products">
+            <button class="faq-q">Are your products authentic?</button>
+            <div class="faq-a">
+              <div class="faq-a-inner">
+                This is a retained demo catalogue, not an authenticity
+                certification. Formulations, images and usage should be checked
+                against manufacturer packaging.
+              </div>
+            </div>
+          </div>
+          <div class="faq-item" data-category="Products">
+            <button class="faq-q">
+              How do I know which product is right for me?
+            </button>
+            <div class="faq-a">
+              <div class="faq-a-inner">
+                Tell Lumi your skin type (oily, dry, sensitive, combination) and
+                concern (acne, hyperpigmentation, dullness, etc.). She’ll
+                recommend products based on GlowLab’s catalog. You can also
+                start with our category filters on the Shop page.
+              </div>
+            </div>
+          </div>
+          <!-- Skincare Advice -->
+          <div class="faq-item" data-category="Skincare">
+            <button class="faq-q">
+              I have acne — what routine should I start with?
+            </button>
+            <div class="faq-a">
+              <div class="faq-a-inner">
+                Lumi can help with basic shopping guidance, not diagnosis or
+                treatment. Introduce new products carefully and follow their
+                packaging. For painful, severe or persistent skin concerns,
+                consult a qualified healthcare professional.
+              </div>
+            </div>
+          </div>
+          <div class="faq-item" data-category="Skincare">
+            <button class="faq-q">
+              How do I fade hyperpigmentation and dark spots?
+            </button>
+            <div class="faq-a">
+              <div class="faq-a-inner">
+                Avoid promises about spot reduction or treatment timelines. Ask
+                a qualified professional about persistent concerns and check
+                product packaging.
+              </div>
+            </div>
+          </div>
+          <div class="faq-item" data-category="Skincare">
+            <button class="faq-q">
+              Do I really need sunscreen if I have dark skin?
+            </button>
+            <div class="faq-a">
+              <div class="faq-a-inner">
+                Lumi can help with basic shopping guidance, not diagnosis or
+                treatment. Introduce new products carefully and follow their
+                packaging. For painful, severe or persistent skin concerns,
+                consult a qualified healthcare professional.
+              </div>
+            </div>
+          </div>
+          <div class="faq-item" data-category="Skincare">
+            <button class="faq-q">How do I use Vitamin C serum?</button>
+            <div class="faq-a">
+              <div class="faq-a-inner">
+                Usage varies by formulation. Check the manufacturer’s packaging.
+                Detailed usage and ingredient lists in this demo are not
+                independently verified.
+              </div>
+            </div>
+          </div>
+          <div class="faq-item" data-category="Skincare">
+            <button class="faq-q">
+              What about retinol? Is it good for beginners?
+            </button>
+            <div class="faq-a">
+              <div class="faq-a-inner">
+                Lumi can help with basic shopping guidance, not diagnosis or
+                treatment. Introduce new products carefully and follow their
+                packaging. For painful, severe or persistent skin concerns,
+                consult a qualified healthcare professional.
+              </div>
+            </div>
+          </div>
+          <!-- Lumi -->
+          <div class="faq-item" data-category="Lumi">
+            <button class="faq-q">Who is Lumi and how can she help?</button>
+            <div class="faq-a">
+              <div class="faq-a-inner">
+                Lumi is GlowLab’s AI skincare advisor when connected to Gemini.
+                She helps you: find products by skin type/concern, build AM/PM
+                routines, explain ingredients in simple terms, answer FAQs on
+                shipping/returns/payments, and suggest qualified care for
+                medical concerns.
+              </div>
+            </div>
+          </div>
+          <div class="faq-item" data-category="Lumi">
+            <button class="faq-q">Can Lumi diagnose my skin condition?</button>
+            <div class="faq-a">
+              <div class="faq-a-inner">
+                No. Lumi is for educational and shopping guidance only. She does
+                not diagnose medical conditions and does not replace
+                professional medical advice. For severe, painful or persistent
+                skin issues, please see a dermatologist or healthcare
+                professional.
+              </div>
+            </div>
+          </div>
+          <div class="faq-item" data-category="Lumi">
+            <button class="faq-q">How do I chat with Lumi?</button>
+            <div class="faq-a">
+              <div class="faq-a-inner">
+                Click any “Chat With Lumi” button on the site. Lumi opens in a
+                dedicated chat panel. You can ask things like: “I have oily skin
+                and dark spots, budget 15k” or “Is CeraVe good for sensitive
+                skin?” AI availability depends on the Gemini connection.
+              </div>
+            </div>
+          </div>
+          <div
+            style="
+              margin-top: 36px;
+              padding: 24px;
+              border: 1px dashed var(--warm-cream-border);
+              border-radius: 16px;
+              background: white;
+              text-align: center;
+            "
+          >
+            <h3 style="font-size: 1.15rem">Still have a question?</h3>
+            <p
+              style="
+                color: var(--text-muted);
+                font-size: 0.94rem;
+                margin: 8px 0 16px;
+              "
+            >
+              Save a demo support ticket through Contact, or ask Lumi when
+              Gemini is connected.
+            </p>
+            <div
+              style="
+                display: flex;
+                gap: 10px;
+                justify-content: center;
+                flex-wrap: wrap;
+              "
+            >
+              <a class="btn btn-primary" href="contact.html">Contact Support</a
+              ><button class="btn btn-secondary" data-chat-lumi="">
+                Chat With Lumi
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    <footer class="footer">
+      <div class="container">
+        <div class="footer-grid">
+          <div>
+            <a class="logo" href="index.html"
+              ><span class="logo-mark">G</span> GlowLab</a
+            >
+            <p style="max-width: 35ch; margin-top: 16px">
+              Thoughtful skincare. A routine that feels like you. Discover the
+              GlowLab demo, with a little help from Lumi.
+            </p>
+          </div>
+          <div>
+            <h4>Explore</h4>
+            <div class="footer-links">
+              <a href="products.html">The collection</a
+              ><a href="about.html">Our approach</a
+              ><a href="cart.html">Your cart</a>
+            </div>
+          </div>
+          <div>
+            <h4>Here to help</h4>
+            <div class="footer-links">
+              <a href="faq.html">Questions &amp; answers</a
+              ><a href="contact.html">Contact &amp; support</a
+              ><button class="text-link" data-chat-lumi="">Ask Lumi</button>
+            </div>
+          </div>
+          <div>
+            <h4>The details</h4>
+            <div class="footer-links">
+              <a href="policies.html">Store policies</a
+              ><a href="policies.html#privacy">Privacy &amp; demo terms</a
+              ><span>Prices in Nigerian naira</span>
+            </div>
+          </div>
+        </div>
+        <div class="footer-bottom">
+          <span>© <span id="year"></span> GlowLab Skincare</span
+          ><span>A fictional storefront · no money charged</span>
+        </div>
+        <div class="footer-note">
+          Demo catalogue and imagery are retained from the original project.
+          Product formulations and usage have not been independently verified.
+          Check the manufacturer’s packaging; Lumi offers shopping guidance, not
+          medical advice. Use fictional personal details when testing.
+        </div>
+      </div>
+    </footer>
+    <button id="backToTop">↑</button>
+    <div class="toast" id="toast" role="status"></div>
+    <script defer="" src="js/script.js"></script>
+    <div class="modal-backdrop" id="productModal">
+      <section
+        aria-labelledby="modalName"
+        aria-modal="true"
+        class="modal"
+        role="dialog"
+        tabindex="-1"
+      >
+        <button
+          aria-label="Close product details"
+          class="modal-close"
+          data-close-modal=""
+        >
+          ×
+        </button>
+        <div class="modal-grid">
+          <div class="modal-img"><img alt="" id="modalImg" /></div>
+          <div class="modal-body">
+            <div class="product-brand" id="modalBrand"></div>
+            <h2 id="modalName"></h2>
+            <p class="price" id="modalPrice"></p>
+            <p id="modalDesc"></p>
+            <p id="modalAvailability"></p>
+            <div class="detail-note">
+              <h3>Ingredients &amp; usage</h3>
+              <p id="modalVerified"></p>
+            </div>
+            <p id="modalHowTo"></p>
+            <ul id="modalIngredients"></ul>
+            <button class="btn btn-primary" id="modalAdd">Add to cart</button
+            ><button class="text-link" data-chat-lumi="">
+              Ask Lumi a question ↗
+            </button>
+            <p class="small">Demo catalogue · simulated checkout</p>
+          </div>
+        </div>
+      </section>
     </div>
-  </section>
-
-  <footer class="footer"><div class="container"><div class="footer-grid"><div><a href="index.html" class="logo"><span class="logo-mark">G</span> GlowLab <span>Skincare</span></a><p style="margin-top:12px; max-width:32ch;">Nigerian skincare simplified.</p></div><div><h4>Pages</h4><div class="footer-links"><a href="index.html">Home</a><a href="products.html">Products</a><a href="about.html">About</a><a href="faq.html">FAQ</a><a href="contact.html">Contact</a></div></div><div><h4>Help</h4><div class="footer-links"><a href="faq.html#shipping">Shipping</a><a href="faq.html#returns">Returns</a><a href="#">Privacy Policy</a><a href="#">Terms</a></div></div><div><h4>Contact</h4><div class="footer-links"><span>Lagos, Nigeria</span><span>hello@glowlab.ng</span><span>+234 801 234 5678</span></div></div></div><div class="footer-bottom"><span>© <span id="year"></span> GlowLab • Demo brand</span><span><a href="index.html">Back to home →</a></span></div><div class="footer-note">GlowLab Skincare is a fictional brand created to demonstrate an AI-powered customer support and product recommendation system.</div></div></footer>
-
-  <button id="backToTop">↑</button><div class="toast" id="toast"></div>
-  <script src="js/script.js"></script>
-    <script src="https://cdn.botpress.cloud/webchat/v5.0/inject.js"></script>
-  <script src="https://files.bpcontent.cloud/2026/08/03/16/20260803163101-9AO2BMBO.js" defer></script>
-</body>
+  </body>
 </html>
