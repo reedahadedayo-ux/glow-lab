@@ -1,15 +1,23 @@
-import { GoogleGenAI } from "@google/genai";
 import { systemInstruction } from "./lumi-system-prompt.js";
 export { systemInstruction } from "./lumi-system-prompt.js";
 import { declarations, executeTool } from "./tools.js";
 import { AppError } from "./validation.js";
 import { redactSecrets } from "./secret-safety.js";
-import {
-  generateWithRecovery,
-  GEMINI_REQUEST_BUDGET_MS,
-} from "./gemini-request.js";
-export const geminiModel = (env = process.env) =>
-  env.GEMINI_MODEL || "gemini-2.5-flash";
+import { createGenerationRouter, LLM_REQUEST_BUDGET_MS } from "./llm-router.js";
+export { geminiModel } from "./llm-router.js";
+
+const stable = (v) =>
+  JSON.stringify(
+    v && typeof v === "object" && !Array.isArray(v)
+      ? Object.fromEntries(
+          Object.keys(v)
+            .sort()
+            .map((k) => [k, JSON.parse(stable(v[k]))]),
+        )
+      : Array.isArray(v)
+        ? v.map((x) => JSON.parse(stable(x)))
+        : v,
+  );
 
 export async function respond({
   message,
@@ -20,11 +28,13 @@ export async function respond({
   env = process.env,
   modelClient,
   observeTool,
+  groqClient,
+  observeProvider,
 }) {
-  if (!env.GEMINI_API_KEY && !modelClient)
+  if (!env.GROQ_API_KEY && !groqClient && !env.GEMINI_API_KEY && !modelClient)
     throw new AppError(
       503,
-      "Lumi is not connected to Gemini yet. You can still browse, shop and use Contact. No AI response has been generated.",
+      "Lumi is not connected to an AI provider yet. You can still browse, shop and use Contact. No AI response has been generated.",
     );
   let contents = [];
   if (historyToken) {
@@ -37,59 +47,28 @@ export async function respond({
     contents = data.contents;
   }
   contents.push({ role: "user", parts: [{ text: message }] });
-  const ai =
-    modelClient ||
-    new GoogleGenAI({
-      apiKey: env.GEMINI_API_KEY,
-      httpOptions: { timeout: 25000 },
-    });
   const products = new Map();
   let routine = null;
   let ticket = null;
-  const deadline = Date.now() + GEMINI_REQUEST_BUDGET_MS;
+  const deadline = Date.now() + LLM_REQUEST_BUDGET_MS;
+  const generate = createGenerationRouter({
+    env,
+    modelClient,
+    groqClient,
+    observeProvider,
+    deadline,
+  });
+  const completedTools = new Map();
   for (let step = 0; step < 6; step++) {
-    let response;
-    try {
-      response = await generateWithRecovery(
-        ai,
-        {
-          model: geminiModel(env),
-          contents,
-          config: {
-            systemInstruction,
-            tools: [{ functionDeclarations: declarations }],
-            temperature: 0.2,
-            maxOutputTokens: 1400,
-          },
-        },
-        deadline,
-      );
-    } catch (e) {
-      const status = Number.isInteger(e.status) ? e.status : 0;
-      const code =
-        status === 429
-          ? "GEMINI_RATE_LIMIT"
-          : [401, 403].includes(status)
-            ? "GEMINI_AUTH"
-            : status === 404
-              ? "GEMINI_MODEL"
-              : status === 400
-                ? "GEMINI_REQUEST"
-                : "GEMINI_UNAVAILABLE";
-      const failure = new AppError(
-        status === 429 ? 429 : 503,
-        status === 429
-          ? "Lumi is busy. Please wait a moment before retrying."
-          : "Lumi could not reach Gemini. Please try again. No action has been confirmed.",
-        code,
-      );
-      failure.diagnostic = {
-        event: "gemini_request_failed",
-        category: code,
-        upstreamStatus: status,
-      };
-      throw failure;
-    }
+    const response = await generate({
+      contents,
+      config: {
+        systemInstruction,
+        tools: [{ functionDeclarations: declarations }],
+        temperature: 0.2,
+        maxOutputTokens: 1400,
+      },
+    });
     const calls = response.functionCalls;
     if (!calls?.length) {
       const text = redactSecrets(response.text?.trim(), env);
@@ -133,22 +112,27 @@ export async function respond({
     );
     const results = [];
     for (const call of calls) {
-      let result;
-      try {
-        result = await executeTool(call.name, call.args || {}, {
-          store,
-          owner,
-          signer,
-        });
-      } catch (e) {
-        result = {
-          error:
-            e instanceof AppError
-              ? e.message
-              : "The requested operation failed. No success is confirmed.",
-        };
+      const cacheKey = `${call.name}:${stable(call.args || {})}`;
+      const cached = completedTools.has(cacheKey);
+      let result = completedTools.get(cacheKey);
+      if (!cached) {
+        try {
+          result = await executeTool(call.name, call.args || {}, {
+            store,
+            owner,
+            signer,
+          });
+        } catch (e) {
+          result = {
+            error:
+              e instanceof AppError
+                ? e.message
+                : "The requested operation failed. No success is confirmed.",
+          };
+        }
+        completedTools.set(cacheKey, result);
       }
-      if (observeTool)
+      if (observeTool && !cached)
         observeTool({
           name: call.name,
           success: !result.error,

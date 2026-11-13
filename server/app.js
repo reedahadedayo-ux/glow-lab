@@ -16,6 +16,8 @@ export function createApp({
   secret,
   modelClient,
   observeTool,
+  groqClient,
+  observeProvider,
 } = {}) {
   const app = express();
   const signer = makeSigner(secret);
@@ -121,6 +123,7 @@ export function createApp({
           : "supabase"
         : "unconfigured",
       gemini: !!env.GEMINI_API_KEY,
+      groq: !!env.GROQ_API_KEY,
       simulated: true,
     }),
   );
@@ -144,6 +147,7 @@ export function createApp({
       database: env.DATA_BACKEND === "local" ? "local-demo" : "supabase",
       catalogueCount: records.length,
       geminiConfigured: !!env.GEMINI_API_KEY,
+      groqConfigured: !!env.GROQ_API_KEY,
     });
   });
   app.get("/api/products/:id", async (req, res) => {
@@ -298,6 +302,8 @@ export function createApp({
           env,
           modelClient,
           observeTool,
+          groqClient,
+          observeProvider,
         }),
       );
     },

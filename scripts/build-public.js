@@ -33,3 +33,12 @@ if (
   const { probeLumiRecovery } = await import("./probe-gemini-transport.js");
   await probeLumiRecovery();
 }
+
+// Deliberate read-only provider proof; never auto-enabled and never a production probe.
+if (
+  process.env.VERCEL_ENV === "preview" &&
+  process.env.GLOWLAB_VERIFY_PROVIDERS === "1"
+) {
+  const { verifyLiveProviders } = await import("./verify-live-providers.js");
+  await verifyLiveProviders();
+}
