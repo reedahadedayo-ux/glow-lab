@@ -8,12 +8,14 @@ import { signer as makeSigner } from "./security.js";
 import { AppError, parse, checkoutSchema, ticketSchema } from "./validation.js";
 import { publicProduct } from "./catalogue.js";
 import { respond } from "./lumi.js";
+import { redactSecrets } from "./secret-safety.js";
 import { executeTool } from "./tools.js";
 export function createApp({
   store,
   env = process.env,
   secret,
   modelClient,
+  observeTool,
 } = {}) {
   const app = express();
   const signer = makeSigner(secret);
@@ -47,6 +49,8 @@ export function createApp({
     }),
   );
   app.use("/api", (_req, res, next) => {
+    const originalJSON = res.json.bind(res);
+    res.json = (body) => originalJSON(redactSecrets(body, env));
     res.set("Cache-Control", "no-store");
     res.locals.requestId = randomUUID();
     res.set("X-Request-ID", res.locals.requestId);
@@ -293,6 +297,7 @@ export function createApp({
           signer,
           env,
           modelClient,
+          observeTool,
         }),
       );
     },
@@ -339,7 +344,9 @@ export function createApp({
     const status = error.status || 500;
     const requestId = res.locals.requestId;
     if (error.diagnostic)
-      console.error(JSON.stringify({ ...error.diagnostic, requestId }));
+      console.error(
+        JSON.stringify(redactSecrets({ ...error.diagnostic, requestId }, env)),
+      );
     res.status(status).json({
       code: error instanceof AppError ? error.code : "SERVER_ERROR",
       requestId,

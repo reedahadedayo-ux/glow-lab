@@ -11,7 +11,8 @@
     "build": "node scripts/build-public.js",
     "format:check": "prettier --check \"*.html\" \"js/*.js\" \"css/*.css\" \"server/*.js\" \"api/*.js\" \"scripts/*.js\" \"tests/*.{js,mjs}\"",
     "test:live:supabase": "node --env-file=.env.supabase scripts/test-live-supabase.js --allow-demo-writes",
-    "diagnose:supabase": "node --env-file-if-exists=.env.supabase scripts/diagnose-supabase.js"
+    "diagnose:supabase": "node --env-file-if-exists=.env.supabase scripts/diagnose-supabase.js",
+    "test:live:gemini": "node scripts/verify-live-gemini.js"
   },
   "engines": {
     "node": ">=22"
