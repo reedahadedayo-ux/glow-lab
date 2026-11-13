@@ -127,7 +127,7 @@ function addToCart(ids) {
   );
 }
 function card(p) {
-  return `<article class="product-card" data-id="${escapeHTML(p.id)}"><div class="product-img"><span class="badge">${escapeHTML(p.category)}</span><a href="products.html?product=${encodeURIComponent(p.id)}" data-view="${escapeHTML(p.id)}"><img src="images/${escapeHTML(p.image)}" alt="${escapeHTML(p.name)}" loading="lazy"></a></div><div class="product-body"><div class="product-brand">${escapeHTML(p.brand)}</div><h3 class="product-name"><a href="products.html?product=${encodeURIComponent(p.id)}" data-view="${escapeHTML(p.id)}">${escapeHTML(p.name)}</a></h3><p class="product-desc">${escapeHTML(p.description)}</p><div class="product-foot"><div class="price">${money(p.price)}</div><span class="small">${p.available ? "Demo available" : "Unavailable"}</span><div class="product-actions"><button class="btn btn-secondary" data-view="${escapeHTML(p.id)}">Details</button><button class="btn btn-primary" data-add="${escapeHTML(p.id)}" ${!p.available ? "disabled" : ""}>Add to cart</button></div></div></div></article>`;
+  return `<article class="product-card" data-id="${escapeHTML(p.id)}"><div class="product-img"><span class="badge">${escapeHTML(p.category)}</span><a href="products.html?product=${encodeURIComponent(p.id)}" data-view="${escapeHTML(p.id)}"><img src="images/${escapeHTML(p.image)}" alt="${escapeHTML(p.name)}" loading="lazy"></a></div><div class="product-body"><div class="product-brand">${escapeHTML(p.brand)}</div><h3 class="product-name"><a href="products.html?product=${encodeURIComponent(p.id)}" data-view="${escapeHTML(p.id)}">${escapeHTML(p.name)}</a></h3><p class="product-desc">${escapeHTML(window.GlowLabCopy.productDescription(p))}</p><div class="product-foot"><div class="price">${money(p.price)}</div><span class="small">${p.available ? "Available to add" : "Currently unavailable"}</span><div class="product-actions"><button class="btn btn-secondary" data-view="${escapeHTML(p.id)}">Details</button><button class="btn btn-primary" data-add="${escapeHTML(p.id)}" ${!p.available ? "disabled" : ""}>Add to cart</button></div></div></div></article>`;
 }
 function renderProducts() {
   const search = $("#productSearch")?.value.toLowerCase().trim() || "";
@@ -148,7 +148,7 @@ function renderProducts() {
       : '<p class="empty-state">No products match. Try a different name or category.</p>';
   if ($("#productCount"))
     $("#productCount").textContent =
-      `${filtered.length} products · Existing demo catalogue · Prices in NGN`;
+      `${filtered.length} products · Prices in NGN`;
   $$("[data-filter]").forEach((b) =>
     b.classList.toggle("active", b.dataset.filter === category),
   );
@@ -163,15 +163,21 @@ function openModal(p, trigger) {
   $("#modalBrand").textContent = p.brand;
   $("#modalName").textContent = p.name;
   $("#modalPrice").textContent = money(p.price);
-  $("#modalDesc").textContent = p.description;
+  $("#modalDesc").textContent = window.GlowLabCopy.productDescription(p);
+  $("#modalCategory").textContent = p.category;
+  $("#modalSize").textContent = p.size || p.volume || "Not listed";
   $("#modalAvailability").textContent = p.available
-    ? `Demo available${p.stock !== null ? " · " + p.stock + " remaining" : ""}`
+    ? "Available to add to your cart"
     : "Currently unavailable";
   $("#modalVerified").textContent = p.details_verified
-    ? "Product details supplied by the catalogue. Check packaging before use."
-    : "Detailed formulation and usage are not verified in the existing catalogue. Check manufacturer packaging before use. No medical benefits are promised.";
-  $("#modalHowTo").textContent = p.usage || "";
-  $("#modalIngredients").textContent = (p.ingredients || []).join(" · ");
+    ? "Check the packaging for the latest ingredients and directions before use."
+    : "We haven’t verified the full ingredients or directions for this product. Please check the manufacturer’s packaging before use.";
+  $("#modalHowTo").textContent =
+    (p.details_verified && p.usage) ||
+    "Directions aren’t listed. Follow the manufacturer’s packaging.";
+  $("#modalIngredients").textContent =
+    (p.details_verified && (p.ingredients || []).join(" · ")) ||
+    "Ingredients aren’t listed. Check the packaging for the full ingredient list.";
   $("#modalAdd").disabled = !p.available;
   backdrop.classList.add("open");
   document.body.style.overflow = "hidden";
@@ -204,7 +210,7 @@ function summaryHTML() {
     )
     .join(
       "",
-    )}<div class="summary-row"><span>Demo delivery</span><span>${money(0)}</span></div><div class="summary-row total"><span>Total</span><span>${money(total())}</span></div><p class="small">No money charged. Final availability and prices are checked by the server.</p>`;
+    )}<div class="summary-row"><span>Delivery (not dispatched)</span><span>${money(0)}</span></div><div class="summary-row total"><span>Total</span><span>${money(total())}</span></div><p class="small">Payment is simulated; no money is charged and no products are dispatched. Prices and availability are checked when you place your order.</p>`;
 }
 function renderCart() {
   const el = $("#cartContent");
@@ -252,7 +258,7 @@ function initCheckout() {
     const button = $("#placeOrder");
     if (button.disabled) return;
     button.disabled = true;
-    button.textContent = "Saving your demo order…";
+    button.textContent = "Placing your order…";
     $("#checkoutError").textContent = "";
     const draft = { customer: customer(), items: cart.map((i) => ({ ...i })) };
     const fingerprint = JSON.stringify(draft);
@@ -278,7 +284,7 @@ function initCheckout() {
     } catch (error) {
       $("#checkoutError").textContent = error.message;
       button.disabled = false;
-      button.textContent = "Retry demo order →";
+      button.textContent = "Try placing order again →";
     }
   });
 }
@@ -288,7 +294,7 @@ async function loadConfirmation() {
   const receipt = storage.get("glowlab.receipt", null, true);
   if (!receipt) {
     el.innerHTML =
-      '<h1>Find your demo order.</h1><p>Order details stay private. Use the browser that placed the order and your checkout email.</p><form id="recoverOrder" class="form"><label>Order reference<input class="input" name="reference" required maxlength="80"></label><label>Checkout email<input class="input" type="email" name="email" required></label><button class="btn btn-primary">Look up order</button><p class="error" role="alert"></p></form>';
+      '<h1>Find your order.</h1><p>Order details stay private. Use the browser that placed the order and your checkout email.</p><form id="recoverOrder" class="form"><label>Order reference<input class="input" name="reference" required maxlength="80"></label><label>Checkout email<input class="input" type="email" name="email" required></label><button class="btn btn-primary">Look up order</button><p class="error" role="alert"></p></form>';
     $("#recoverOrder").addEventListener("submit", async (e) => {
       e.preventDefault();
       const f = e.target;
@@ -308,7 +314,7 @@ async function loadConfirmation() {
   }
   try {
     const { order: o } = await api("orders/lookup", receipt);
-    el.innerHTML = `<span class="eyebrow">Saved & confirmed</span><h1>Your demo order is <em>saved.</em></h1><p>This is a simulation. No money was charged and no products will be shipped.</p><div class="order-reference">${escapeHTML(o.reference)}</div><p class="small">Save this reference. Order lookup requires this browser and your checkout email.</p><div class="summary-card journey-content"><h2>Order confirmation</h2><div class="summary-row"><span>Order status</span><strong>${escapeHTML(o.order_status)}</strong></div><div class="summary-row"><span>Fulfillment</span><strong>${escapeHTML(o.fulfillment_status || "unfulfilled")}</strong></div><div class="summary-row"><span>Payment</span><strong>${escapeHTML(o.payment_status)} · ${escapeHTML(o.payment_method)}</strong></div>${o.items.map((i) => `<div class="summary-row"><span>${escapeHTML(i.product_name)} × ${i.quantity}</span><strong>${money(i.line_total)}</strong></div>`).join("")}<div class="summary-row"><span>Subtotal</span><strong>${money(o.subtotal ?? o.total)}</strong></div><div class="summary-row"><span>Demo shipping</span><strong>${money(o.shipping_fee ?? o.delivery_fee ?? 0)}</strong></div><div class="summary-row total"><span>Demo total</span><span>${money(o.total)}</span></div><p class="small">Created ${escapeHTML(new Date(o.created_at).toLocaleString())}. This is not a payment-provider receipt.</p></div><div style="margin-top:25px;display:flex;gap:16px;flex-wrap:wrap"><button class="btn btn-primary" data-chat-lumi>Ask Lumi about this order</button><a href="products.html" class="btn btn-secondary">Continue exploring</a><a href="contact.html" class="text-link">Report a problem</a></div>`;
+    el.innerHTML = `<span class="eyebrow">Order received</span><h1>We’ve received <em>your order.</em></h1><p>Keep your reference below. Payment was simulated: no money was charged and no products will be dispatched.</p><div class="order-reference">${escapeHTML(o.reference)}</div><p class="small">Save this reference. Order lookup requires this browser and your checkout email.</p><div class="summary-card journey-content"><h2>Order confirmation</h2><div class="summary-row"><span>Order status</span><strong>${escapeHTML(window.GlowLabCopy.status(o.order_status))}</strong></div><div class="summary-row"><span>Fulfillment</span><strong>${escapeHTML(window.GlowLabCopy.status(o.fulfillment_status))}</strong></div><div class="summary-row"><span>Payment</span><strong>${escapeHTML(window.GlowLabCopy.payment(o))}</strong></div>${o.items.map((i) => `<div class="summary-row"><span>${escapeHTML(i.product_name)} × ${i.quantity}</span><strong>${money(i.line_total)}</strong></div>`).join("")}<div class="summary-row"><span>Subtotal</span><strong>${money(o.subtotal ?? o.total)}</strong></div><div class="summary-row"><span>Delivery</span><strong>${money(o.shipping_fee ?? o.delivery_fee ?? 0)}</strong></div><div class="summary-row total"><span>Total</span><span>${money(o.total)}</span></div><p class="small">Created ${escapeHTML(new Date(o.created_at).toLocaleString())}. No payment receipt is issued for a simulated payment.</p></div><div style="margin-top:25px;display:flex;gap:16px;flex-wrap:wrap"><button class="btn btn-primary" data-chat-lumi>Ask Lumi about this order</button><a href="products.html" class="btn btn-secondary">Continue exploring</a><a href="contact.html" class="text-link">Report a problem</a></div>`;
   } catch (error) {
     el.innerHTML = `<h1>We couldn’t retrieve your order.</h1><p class="error">${escapeHTML(error.message)}</p><button id="retryConfirmation" class="btn btn-primary">Retry lookup</button>`;
     $("#retryConfirmation").onclick = loadConfirmation;
@@ -338,7 +344,7 @@ function initContact() {
         orderReference: $("#orderReference")?.value.trim() || "",
         idempotencyKey: key,
       });
-      status.textContent = `Saved as ${ticket.id}. Status: ${ticket.status}. This is a demo ticket; no email has been sent.`;
+      status.textContent = `Request received. Your reference is ${ticket.id}. Status: ${window.GlowLabCopy.status(ticket.status)}. No email confirmation is sent.`;
       form.reset();
       key = crypto.randomUUID();
     } catch (error) {
@@ -364,10 +370,11 @@ function initLumi() {
   panel.setAttribute("role", "dialog");
   panel.setAttribute("aria-label", "Lumi skincare shopping assistant");
   panel.innerHTML =
-    '<header class="lumi-header"><span class="lumi-avatar">✧</span><div><h2>Lumi</h2><p>Your skincare shopping companion</p></div><button id="closeLumi" aria-label="Close Lumi">×</button></header><div class="lumi-history" id="lumiHistory" role="log" aria-live="polite" aria-relevant="additions"></div><form class="lumi-form" id="lumiForm"><label class="small" for="lumiInput">How can I help?</label><div class="lumi-input-row"><textarea class="input" id="lumiInput" placeholder="A simple routine for oily skin…" rows="2" maxlength="2000" required></textarea><button class="btn btn-primary" aria-label="Send message">↑</button></div><p class="lumi-disclaimer">AI shopping guidance, not medical advice. Messages go to Gemini. Use fictional demo details.</p><button type="button" class="lumi-reset" id="resetLumi">Start a new conversation</button></form>';
+    '<header class="lumi-header"><span class="lumi-avatar">✧</span><div><h2>Lumi</h2><p>Your skincare shopping companion</p></div><button id="closeLumi" aria-label="Close Lumi">×</button></header><div class="lumi-history" id="lumiHistory" role="log" aria-live="polite" aria-relevant="additions"></div><form class="lumi-form" id="lumiForm"><label class="small" for="lumiInput">How can I help?</label><div class="lumi-input-row"><textarea class="input" id="lumiInput" placeholder="A simple routine for oily skin…" rows="2" maxlength="2000" required></textarea><button class="btn btn-primary" aria-label="Send message">↑</button></div><p class="lumi-disclaimer">AI shopping guidance, not medical advice. Messages are sent to Google Gemini. Please don’t share sensitive information.</p><button type="button" class="lumi-reset" id="resetLumi">Start a new conversation</button></form>';
   document.body.append(panel);
   if (!config.gemini)
-    $(".lumi-header p", panel).textContent = "Gemini is not configured yet";
+    $(".lumi-header p", panel).textContent =
+      "Lumi is currently unavailable. Browse Products or use Contact.";
   const history = $("#lumiHistory");
   let transcript = storage.get("glowlab.chat", [], true);
   let historyToken = storage.get("glowlab.historyToken", "", true);
@@ -389,7 +396,7 @@ function initLumi() {
   function intro() {
     append(
       "assistant",
-      "Hi, I’m Lumi. Let’s make skincare feel simpler. I can help you explore the collection, build a basic routine or check a demo order. What brings you here?",
+      "Hi, I’m Lumi, your AI shopping companion. I can help you explore products, think through a simple routine or check an order. What are you looking for today?",
     );
     const hints = document.createElement("div");
     hints.className = "lumi-suggestions";
@@ -424,7 +431,7 @@ function initLumi() {
       box.innerHTML = offered
         .map(
           (p) =>
-            `<div class="lumi-product"><img src="images/${escapeHTML(p.image)}" alt="${escapeHTML(p.name)}"><div><h4><a href="products.html?product=${encodeURIComponent(p.id)}">${escapeHTML(p.name)}</a></h4><p>${money(p.price)} · ${p.available ? "Demo available" : "Unavailable"}</p><label><input type="checkbox" value="${escapeHTML(p.id)}" ${!p.available ? "disabled" : ""}> Select for your cart</label></div></div>`,
+            `<div class="lumi-product"><img src="images/${escapeHTML(p.image)}" alt="${escapeHTML(p.name)}"><div><h4><a href="products.html?product=${encodeURIComponent(p.id)}">${escapeHTML(p.name)}</a></h4><p>${money(p.price)} · ${p.available ? "Available to add" : "Currently unavailable"}</p><label><input type="checkbox" value="${escapeHTML(p.id)}" ${!p.available ? "disabled" : ""}> Select for your cart</label></div></div>`,
         )
         .join("");
       if (result.routine) {
@@ -737,6 +744,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       try {
         const { policies } = await api("policies");
         $("#policyContent").innerHTML = policies
+          .map(window.GlowLabCopy.policy)
           .map(
             (p) =>
               `<section class="policy" id="${escapeHTML(p.slug)}"><h2>${escapeHTML(p.title)}</h2><p>${escapeHTML(p.content)}</p></section>`,
@@ -758,15 +766,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       const p = products.find((p) => p.id === id);
       if (p) openModal(p);
       else toast("That product is not listed.");
-    }
-    if (config.storage === "local-demo" || config.storage === "unconfigured") {
-      const bar = $(".demo-bar");
-      if (bar)
-        bar.append(
-          config.storage === "local-demo"
-            ? " · Local database preview"
-            : " · Backend not connected",
-        );
     }
   } catch (error) {
     for (const el of $$("#allProductsGrid,#featuredGrid,#cartContent"))

@@ -4,15 +4,12 @@
   <head>
     <meta charset="utf-8" />
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
-    <title>Contact GlowLab | Demo Support</title>
+    <title>Contact GlowLab | Customer Support</title>
     <link href="css/style.css" rel="stylesheet" />
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
-    <div class="demo-bar">
-      A little guidance. A simpler routine.
-      <span>Demo store · no real payments or deliveries</span>
-    </div>
+    <div class="brand-bar">A little guidance. A simpler routine.</div>
     <nav aria-label="Main navigation" class="nav">
       <div class="container nav-inner">
         <a aria-label="GlowLab home" class="logo" href="index.html"
@@ -52,16 +49,17 @@
     <section class="section" id="main">
       <div class="container contact-grid">
         <div class="reveal">
-          <span class="eyebrow">Contact &amp; demo support</span>
+          <span class="eyebrow">Here to help</span>
           <h1
             class="display"
             style="font-size: clamp(2rem, 4vw, 3.2rem); margin: 12px 0 16px"
           >
-            We’d love to help you build your <em>best routine.</em>
+            A question? <em>Let’s start here.</em>
           </h1>
           <p class="lead">
-            Questions about products or a demo order? Leave the details below to
-            create a persistent support ticket. No email is sent.
+            Questions about a product or an order? Tell us what you need help
+            with. Add your order reference if your question relates to a
+            purchase.
           </p>
           <form
             class="form"
@@ -141,7 +139,7 @@
               style="width: 100%"
               type="submit"
             >
-              Submit support ticket →
+              Send support request →
             </button>
             <p
               style="
@@ -150,13 +148,13 @@
                 text-align: center;
               "
             >
-              Or chat instantly with Lumi — AI availability depends on the
-              Gemini connection
+              For product discovery and routine ideas, you can also ask Lumi.
             </p>
             <p id="contactStatus" role="status"></p>
             <p class="small">
-              Submitting saves a support ticket. No email is sent. Use fictional
-              demo details.
+              Your request is saved with a reference shown here. Email replies
+              are not available. Please use fictional contact details and don’t
+              include medical or payment information.
             </p>
           </form>
         </div>
@@ -182,7 +180,7 @@
                 </svg>
               </div>
               <div>
-                <strong>Online demonstration</strong>
+                <strong>Product questions</strong>
                 <p
                   style="
                     color: var(--text-muted);
@@ -190,8 +188,8 @@
                     margin-top: 2px;
                   "
                 >
-                  No physical shop or delivery service is operated through this
-                  demonstration. Use fictional details when testing.
+                  Browse the collection or ask Lumi to help you compare options.
+                  Check product packaging for ingredients and directions.
                 </p>
               </div>
             </div>
@@ -211,9 +209,10 @@
                 </svg>
               </div>
               <div>
-                <strong>Simulated checkout</strong>
+                <strong>Order questions</strong>
                 <p style="color: var(--text-muted); font-size: 0.92rem">
-                  Simulated checkout · no money charged
+                  Include your order reference so your request has the right
+                  context.
                 </p>
               </div>
             </div>
@@ -224,7 +223,7 @@
                 padding-top: 18px;
               "
             >
-              <strong style="font-size: 0.9rem">Shipping</strong>
+              <strong style="font-size: 0.9rem">Store information</strong>
               <p
                 style="
                   font-size: 0.88rem;
@@ -233,8 +232,8 @@
                   line-height: 1.6;
                 "
               >
-                No products are dispatched in this demo. See Store policies for
-                the illustrative delivery and returns terms.
+                Read our <a href="policies.html">store policies</a> for payment,
+                delivery and privacy information.
               </p>
             </div>
             <button
@@ -267,13 +266,12 @@
                 place-items: center;
               "
             >
-              🤖
+              ✧
             </div>
             <div>
               <strong>Lumi is your skincare companion</strong>
               <p style="font-size: 0.86rem; color: rgba(255, 255, 255, 0.7)">
-                Routine ideas, catalogue search and order help when connected to
-                Gemini.
+                Explore products, plan a simple routine or ask about an order.
               </p>
             </div>
           </div>
@@ -288,8 +286,8 @@
               ><span class="logo-mark">G</span> GlowLab</a
             >
             <p style="max-width: 35ch; margin-top: 16px">
-              Thoughtful skincare. A routine that feels like you. Discover the
-              GlowLab demo, with a little help from Lumi.
+              Skincare, with a little clarity. Explore the collection and find
+              your own everyday routine.
             </p>
           </div>
           <div>
@@ -312,25 +310,25 @@
             <h4>The details</h4>
             <div class="footer-links">
               <a href="policies.html">Store policies</a
-              ><a href="policies.html#privacy">Privacy &amp; demo terms</a
+              ><a href="policies.html#privacy">Privacy &amp; terms</a
               ><span>Prices in Nigerian naira</span>
             </div>
           </div>
         </div>
         <div class="footer-bottom">
           <span>© <span id="year"></span> GlowLab Skincare</span
-          ><span>A fictional storefront · no money charged</span>
+          ><span>Demonstration store · no payments or dispatches</span>
         </div>
         <div class="footer-note">
-          Demo catalogue and imagery are retained from the original project.
-          Product formulations and usage have not been independently verified.
-          Check the manufacturer’s packaging; Lumi offers shopping guidance, not
-          medical advice. Use fictional personal details when testing.
+          Explore responsibly: check product packaging before use. Lumi offers
+          shopping guidance, not medical advice.
+          <a href="policies.html#privacy">Privacy &amp; store information</a>.
         </div>
       </div>
     </footer>
     <button id="backToTop">↑</button>
     <div class="toast" id="toast" role="status"></div>
+    <script defer="" src="js/storefront-copy.js"></script>
     <script defer="" src="js/script.js"></script>
     <div class="modal-backdrop" id="productModal">
       <section
@@ -355,17 +353,35 @@
             <p class="price" id="modalPrice"></p>
             <p id="modalDesc"></p>
             <p id="modalAvailability"></p>
+            <dl class="product-facts">
+              <div>
+                <dt>Category</dt>
+                <dd id="modalCategory"></dd>
+              </div>
+              <div>
+                <dt>Size / volume</dt>
+                <dd id="modalSize"></dd>
+              </div>
+            </dl>
             <div class="detail-note">
-              <h3>Ingredients &amp; usage</h3>
+              <h3>Before you choose</h3>
               <p id="modalVerified"></p>
             </div>
-            <p id="modalHowTo"></p>
-            <ul id="modalIngredients"></ul>
+            <div class="product-detail-section">
+              <h3>Directions</h3>
+              <p id="modalHowTo"></p>
+            </div>
+            <div class="product-detail-section">
+              <h3>Ingredients</h3>
+              <p id="modalIngredients"></p>
+            </div>
             <button class="btn btn-primary" id="modalAdd">Add to cart</button
             ><button class="text-link" data-chat-lumi="">
               Ask Lumi a question ↗
             </button>
-            <p class="small">Demo catalogue · simulated checkout</p>
+            <p class="small">
+              Check packaging for the latest product information.
+            </p>
           </div>
         </div>
       </section>

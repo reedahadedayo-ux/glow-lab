@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdirSync } from "node:fs";
+import { mkdirSync, existsSync } from "node:fs";
 import { chromium } from "playwright";
 import binary from "@sparticuz/chromium";
 import { inflate } from "../node_modules/@sparticuz/chromium/build/lambdafs.js";
@@ -75,6 +75,7 @@ page.on("console", (m) => {
   if (m.type() === "error") errors.push(m.text());
 });
 let resilienceServer;
+const viewportServers = [];
 try {
   for (const name of [
     "index",
@@ -132,8 +133,98 @@ try {
       true,
       name + " desktop overflow",
     );
+    assert.equal(
+      await page.locator(".brand-bar").textContent(),
+      "A little guidance. A simpler routine.",
+    );
+    assert.match(
+      await page.locator(".footer-bottom").textContent(),
+      /Demonstration store/,
+    );
+    for (const href of await page
+      .locator("a[href]")
+      .evaluateAll((links) => links.map((a) => a.getAttribute("href")))) {
+      if (/^(?:https?:|mailto:|tel:)/.test(href)) continue;
+      const url = new URL(href, base + "/" + name + ".html");
+      assert.ok(existsSync("." + url.pathname), name + " broken link: " + href);
+      if (url.pathname === "/" + name + ".html" && url.hash)
+        assert.equal(
+          await page.locator(url.hash).count(),
+          1,
+          name + " missing anchor " + href,
+        );
+    }
+    await page.screenshot({
+      path: `test-results/refined-${name}-desktop.png`,
+      fullPage: true,
+    });
     checks++;
   }
+  // Every product detail URL retains its data and clearly handles missing facts.
+  for (const product of await store.products()) {
+    await page.goto(base + "/products.html?product=" + product.id);
+    await page.waitForSelector("#productModal.open");
+    assert.equal(await page.locator("#modalName").textContent(), product.name);
+    assert.equal(
+      await page.locator("#modalCategory").textContent(),
+      product.category,
+    );
+    assert.equal(await page.locator("#modalSize").textContent(), "Not listed");
+    assert.match(
+      await page.locator("#modalIngredients").textContent(),
+      /aren’t listed/,
+    );
+    assert.match(
+      await page.locator("#modalHowTo").textContent(),
+      /aren’t listed/,
+    );
+    assert.doesNotMatch(
+      await page.locator("#modalDesc").textContent(),
+      /demo|project|existing/i,
+    );
+    await page.keyboard.press("Escape");
+    checks++;
+  }
+  await page.goto(base + "/policies.html");
+  await page.waitForSelector("#policyContent .policy");
+  assert.doesNotMatch(
+    await page.locator("#policyContent").textContent(),
+    /1–3|3–7|7 days|48 hours|payment_status|order_status/,
+  );
+  assert.match(await page.locator("#privacy").textContent(), /saved/);
+  checks++;
+  await page.goto(base + "/contact.html");
+  await page.waitForFunction(
+    () => document.querySelector("#contactForm").dataset.ready,
+  );
+  await page.locator("#name").fill("Fictional Shopper");
+  await page.locator("#email").fill("shopper@example.com");
+  await page
+    .locator("#message")
+    .fill("Please help me compare the products in the collection.");
+  await page.getByRole("button", { name: "Send support request" }).click();
+  await page.waitForFunction(() =>
+    document
+      .querySelector("#contactStatus")
+      .textContent.includes("Request received"),
+  );
+  assert.match(
+    await page.locator("#contactStatus").textContent(),
+    /No email confirmation is sent/,
+  );
+  assert.equal(store.db.prepare("SELECT count(*) n FROM tickets").get().n, 1);
+  // Remove only this local in-memory fixture, never a deployed record.
+  store.db.prepare("DELETE FROM tickets").run();
+  checks++;
+  await page.goto(base + "/faq.html");
+  await page
+    .getByRole("button", { name: /What is your return policy\?/ })
+    .click();
+  assert.match(
+    await page.locator("#returns .faq-a-inner").textContent(),
+    /No\s+physical returns/,
+  );
+  checks++;
   await page.goto(base + "/products.html");
   await page.waitForFunction(
     () => document.querySelectorAll(".product-card").length === 12,
@@ -195,7 +286,7 @@ try {
   await page.getByRole("link", { name: "Proceed to checkout" }).click();
   await page.waitForSelector("#checkoutForm");
   // Browser native validation: an empty form must not create any order.
-  await page.getByRole("button", { name: "Place demo order" }).click();
+  await page.getByRole("button", { name: "Place order" }).click();
   assert.equal(store.db.prepare("SELECT count(*) n FROM orders").get().n, 0);
   for (const [name, value] of Object.entries({
     name: "Demo Customer",
@@ -206,18 +297,18 @@ try {
   }))
     await page.locator(`[name="${name}"]`).fill(value);
   await page.locator("#checkoutForm [type=checkbox]").check();
-  await page.getByRole("button", { name: "Place demo order" }).click();
+  await page.getByRole("button", { name: "Place order" }).click();
   await page.waitForURL("**/confirmation.html");
   await page.waitForSelector(".order-reference");
   const reference = await page.locator(".order-reference").textContent();
   assert.match(reference, /GL-/);
   assert.match(
     await page.locator("#confirmationContent").textContent(),
-    /paid · simulated/,
+    /Simulation complete · no money charged/,
   );
   assert.match(
     await page.locator("#confirmationContent").textContent(),
-    /unfulfilled/,
+    /Not dispatched/,
   );
   assert.match(
     await page.locator("#confirmationContent").textContent(),
@@ -254,6 +345,17 @@ try {
   await page.locator("#closeLumi").click();
   checks++;
   for (const width of [768, 390]) {
+    // Separate app instances keep exhaustive navigation below each app's real rate limit.
+    // Do not weaken the production limiter for test coverage.
+    const viewportServer = createApp({
+      store,
+      secret: "browser-tests-only-secret-32-characters-minimum",
+      env: { DATA_BACKEND: "local" },
+      modelClient,
+    }).listen(0, "127.0.0.1");
+    await new Promise((r) => viewportServer.once("listening", r));
+    viewportServers.push(viewportServer);
+    base = `http://127.0.0.1:${viewportServer.address().port}`;
     await page.setViewportSize({ width, height: 844 });
     for (const name of [
       "index",
@@ -275,13 +377,87 @@ try {
         true,
         name + " width " + width,
       );
+      await page.screenshot({
+        path: `test-results/refined-${name}-${width}.png`,
+        fullPage: true,
+      });
       await page.locator("#mobileToggle").click();
       assert.equal(await page.locator("#mobileMenu").isVisible(), true);
       await page.locator('#mobileMenu a[href="products.html"]').click();
       await page.waitForURL("**/products.html");
       checks++;
     }
+    // Complete the real local checkout at both touch widths, not just empty-page checks.
+    await page.goto(base + "/products.html?product=cerave-foaming");
+    await page.waitForSelector("#productModal.open");
+    await page.locator("#modalAdd").click();
+    await page.keyboard.press("Escape");
+    await page.goto(base + "/cart.html");
+    await page.waitForSelector(".cart-item");
+    await page.screenshot({
+      path: `test-results/refined-cart-populated-${width}.png`,
+      fullPage: true,
+    });
+    await page.getByRole("link", { name: "Proceed to checkout" }).click();
+    await page.waitForSelector("#checkoutForm");
+    for (const [name, value] of Object.entries({
+      name: "Fictional Shopper",
+      email: "shopper@example.com",
+      phone: "+234 800 000 0000",
+      address: "12 Example Street",
+      city: "Jos",
+    }))
+      await page.locator(`#checkoutForm [name="${name}"]`).fill(value);
+    await page.locator("#checkoutForm [type=checkbox]").check();
+    await page.screenshot({
+      path: `test-results/refined-checkout-populated-${width}.png`,
+      fullPage: true,
+    });
+    await page.getByRole("button", { name: "Place order" }).click();
+    await page.waitForURL("**/confirmation.html");
+    await page.waitForSelector(".order-reference");
+    assert.match(
+      await page.locator("#confirmationContent").textContent(),
+      /Simulation complete · no money charged/,
+    );
+    assert.equal(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+      true,
+    );
+    await page.screenshot({
+      path: `test-results/refined-confirmation-saved-${width}.png`,
+      fullPage: true,
+    });
+    // Assert the submitted customer snapshot is persisted, without logging personal details.
+    const localOrder = store.db
+      .prepare(
+        "SELECT data FROM orders WHERE json_extract(data,'$.reference') = ?",
+      )
+      .get(await page.locator(".order-reference").textContent());
+    assert.equal(
+      JSON.parse(localOrder.data).customer.email,
+      "shopper@example.com",
+    );
+    checks++;
   }
+  await page.goto(base + "/products.html?product=cerave-foaming");
+  await page.waitForSelector("#productModal.open");
+  await page.locator("#modalAdd").scrollIntoViewIfNeeded();
+  assert.equal(await page.locator("#modalAdd").isVisible(), true);
+  assert.equal(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+    true,
+  );
+  await page.screenshot({
+    path: "test-results/refined-product-mobile.png",
+    fullPage: false,
+  });
+  await page.keyboard.press("Escape");
+  checks++;
   await page.goto(base + "/index.html");
   await page.waitForFunction(() => window.openLumi);
   await page.screenshot({
@@ -360,6 +536,10 @@ try {
   );
 } finally {
   await browser.close();
+  for (const instance of viewportServers) {
+    instance.closeAllConnections();
+    await new Promise((r) => instance.close(r));
+  }
   if (resilienceServer) {
     resilienceServer.closeAllConnections();
     await new Promise((r) => resilienceServer.close(r));

@@ -9,10 +9,7 @@
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
-    <div class="demo-bar">
-      A little guidance. A simpler routine.
-      <span>Demo store · no real payments or deliveries</span>
-    </div>
+    <div class="brand-bar">A little guidance. A simpler routine.</div>
     <nav aria-label="Main navigation" class="nav">
       <div class="container nav-inner">
         <a aria-label="GlowLab home" class="logo" href="index.html"
@@ -69,8 +66,8 @@
               ><span class="logo-mark">G</span> GlowLab</a
             >
             <p style="max-width: 35ch; margin-top: 16px">
-              Thoughtful skincare. A routine that feels like you. Discover the
-              GlowLab demo, with a little help from Lumi.
+              Skincare, with a little clarity. Explore the collection and find
+              your own everyday routine.
             </p>
           </div>
           <div>
@@ -93,20 +90,19 @@
             <h4>The details</h4>
             <div class="footer-links">
               <a href="policies.html">Store policies</a
-              ><a href="policies.html#privacy">Privacy &amp; demo terms</a
+              ><a href="policies.html#privacy">Privacy &amp; terms</a
               ><span>Prices in Nigerian naira</span>
             </div>
           </div>
         </div>
         <div class="footer-bottom">
           <span>© <span id="year"></span> GlowLab Skincare</span
-          ><span>A fictional storefront · no money charged</span>
+          ><span>Demonstration store · no payments or dispatches</span>
         </div>
         <div class="footer-note">
-          Demo catalogue and imagery are retained from the original project.
-          Product formulations and usage have not been independently verified.
-          Check the manufacturer’s packaging; Lumi offers shopping guidance, not
-          medical advice. Use fictional personal details when testing.
+          Explore responsibly: check product packaging before use. Lumi offers
+          shopping guidance, not medical advice.
+          <a href="policies.html#privacy">Privacy &amp; store information</a>.
         </div>
       </div>
     </footer>
@@ -134,21 +130,40 @@
             <p class="price" id="modalPrice"></p>
             <p id="modalDesc"></p>
             <p id="modalAvailability"></p>
+            <dl class="product-facts">
+              <div>
+                <dt>Category</dt>
+                <dd id="modalCategory"></dd>
+              </div>
+              <div>
+                <dt>Size / volume</dt>
+                <dd id="modalSize"></dd>
+              </div>
+            </dl>
             <div class="detail-note">
-              <h3>Ingredients &amp; usage</h3>
+              <h3>Before you choose</h3>
               <p id="modalVerified"></p>
             </div>
-            <p id="modalHowTo"></p>
-            <ul id="modalIngredients"></ul>
+            <div class="product-detail-section">
+              <h3>Directions</h3>
+              <p id="modalHowTo"></p>
+            </div>
+            <div class="product-detail-section">
+              <h3>Ingredients</h3>
+              <p id="modalIngredients"></p>
+            </div>
             <button class="btn btn-primary" id="modalAdd">Add to cart</button
             ><button class="text-link" data-chat-lumi="">
               Ask Lumi a question ↗
             </button>
-            <p class="small">Demo catalogue · simulated checkout</p>
+            <p class="small">
+              Check packaging for the latest product information.
+            </p>
           </div>
         </div>
       </section>
     </div>
+    <script defer="" src="js/storefront-copy.js"></script>
     <script defer="" src="js/script.js"></script>
   </body>
 </html>
