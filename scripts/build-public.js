@@ -16,3 +16,12 @@ if (
   const { logLiveVerification } = await import("./verify-live-gemini.js");
   await logLiveVerification();
 }
+
+// Explicit read-only diagnostic of the deployed production endpoint.
+if (
+  process.env.VERCEL_ENV === "preview" &&
+  process.env.GLOWLAB_PROBE_DEPLOYED_LUMI === "1"
+) {
+  const { probeDeployedLumi } = await import("./probe-deployed-lumi.js");
+  await probeDeployedLumi();
+}
