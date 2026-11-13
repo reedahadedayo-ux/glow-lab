@@ -1,1 +1,13 @@
+node_modules/
+.env
+.env.*
+!.env.example
+.data/
+test-results/
+playwright-report/
+coverage/
+.vercel/
 image-search/
+*.log
+
+public/

@@ -1,0 +1,33 @@
+{
+  "name": "glowlab",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --env-file-if-exists=.env server/index.js",
+    "start": "node --env-file-if-exists=.env server/index.js",
+    "test": "node --test tests/*.test.js",
+    "test:browser": "node tests/browser.mjs",
+    "build": "node scripts/build-public.js",
+    "format:check": "prettier --check \"*.html\" \"js/*.js\" \"css/*.css\" \"server/*.js\" \"api/*.js\" \"scripts/*.js\" \"tests/*.{js,mjs}\"",
+    "test:live:supabase": "node --env-file=.env.supabase scripts/test-live-supabase.js --allow-demo-writes",
+    "diagnose:supabase": "node --env-file-if-exists=.env.supabase scripts/diagnose-supabase.js"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@google/genai": "^1.30.0",
+    "@supabase/supabase-js": "^2.81.0",
+    "express": "^5.1.0",
+    "express-rate-limit": "^8.2.1",
+    "helmet": "^8.1.0",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.16",
+    "@playwright/test": "^1.56.1",
+    "@sparticuz/chromium": "^153.0.0",
+    "prettier": "^3.10.1"
+  }
+}

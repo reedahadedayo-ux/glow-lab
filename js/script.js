@@ -1,454 +1,781 @@
-/* GlowLab Skincare - Vanilla JS */
-
-const PRODUCTS = [
-  {
-    id: 'cerave-foaming',
-    name: 'CeraVe Foaming Facial Cleanser',
-    brand: 'CeraVe',
-    price: 14500,
-    comparePrice: 16800,
-    image: 'cerave-foaming-cleanser.jpg',
-    category: 'Cleansers',
-    skinType: 'Oily, Combination',
-    concern: 'Excess Oil, Acne',
-    desc: 'Gentle foaming cleanser with 3 essential ceramides to cleanse without disrupting the skin barrier.',
-    longDesc: 'A deep-cleansing yet non-stripping foaming cleanser developed with dermatologists. Removes excess oil, dirt and makeup while maintaining the skin’s natural barrier with ceramides and niacinamide. Ideal for oily to normal skin, morning and night.',
-    ingredients: ['Ceramides NP, AP, EOP', 'Niacinamide', 'Hyaluronic Acid'],
-    howTo: 'Wet skin, lather, massage gently, rinse.'
+/* GlowLab customer storefront. All prices/orders/tools are validated by the backend. */
+"use strict";
+const $ = (s, root = document) => root.querySelector(s);
+const $$ = (s, root = document) => [...root.querySelectorAll(s)];
+const escapeHTML = (value) =>
+  String(value ?? "").replace(
+    /[&<>"']/g,
+    (c) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[
+        c
+      ],
+  );
+const money = (n) =>
+  new Intl.NumberFormat("en-NG", {
+    style: "currency",
+    currency: "NGN",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(n);
+const storage = {
+  get(key, fallback, session = false) {
+    try {
+      return (
+        JSON.parse((session ? sessionStorage : localStorage).getItem(key)) ??
+        fallback
+      );
+    } catch {
+      return fallback;
+    }
   },
-  {
-    id: 'cetaphil-gentle',
-    name: 'Cetaphil Gentle Skin Cleanser',
-    brand: 'Cetaphil',
-    price: 13200,
-    comparePrice: null,
-    image: 'cetaphil-cleanser.jpg',
-    category: 'Cleansers',
-    skinType: 'Sensitive, Dry',
-    concern: 'Sensitivity, Dryness',
-    desc: 'Mild, non-irritating cleanser that soothes skin while removing dirt and impurities.',
-    longDesc: 'The cult-favorite gentle cleanser for sensitive skin. Soap-free, fragrance-free, and clinically proven to clean without irritation. Can be used with or without water, making it perfect for reactive and dry skin types.',
-    ingredients: ['Pro-Vitamin B5', 'Niacinamide', 'Glycerin'],
-    howTo: 'Apply to skin, massage, rinse or wipe off.'
+  set(key, value, session = false) {
+    try {
+      (session ? sessionStorage : localStorage).setItem(
+        key,
+        JSON.stringify(value),
+      );
+    } catch {
+      toast(
+        "Browser storage is unavailable. Your changes may not survive a refresh.",
+      );
+    }
   },
-  {
-    id: 'cerave-cream',
-    name: 'CeraVe Moisturizing Cream',
-    brand: 'CeraVe',
-    price: 17800,
-    comparePrice: 19500,
-    image: 'cerave-moisturizing-cream.jpg',
-    category: 'Moisturizers',
-    skinType: 'Dry, Sensitive',
-    concern: 'Barrier Repair, Dryness',
-    desc: 'Rich, non-greasy cream with MVE Technology for 24-hour hydration and barrier repair.',
-    longDesc: 'A dermatologist-favorite for intensely dry skin. This rich cream restores and maintains the skin barrier with 3 essential ceramides and hyaluronic acid. Non-comedogenic, fragrance-free, and releases hydration throughout the day.',
-    ingredients: ['3 Essential Ceramides', 'Hyaluronic Acid', 'Petrolatum'],
-    howTo: 'Apply liberally morning and evening to face and body.'
+  remove(key, session = false) {
+    try {
+      (session ? sessionStorage : localStorage).removeItem(key);
+    } catch {}
   },
-  {
-    id: 'neutrogena-hydro',
-    name: 'Neutrogena Hydro Boost Water Gel',
-    brand: 'Neutrogena',
-    price: 12500,
-    comparePrice: null,
-    image: 'neutrogena-hydro-boost.jpg',
-    category: 'Moisturizers',
-    skinType: 'Oily, Combination',
-    concern: 'Dehydration, Dullness',
-    desc: 'Lightweight water gel that quenches dry skin and keeps it hydrated all day.',
-    longDesc: 'Oil-free, non-comedogenic water gel that instantly quenches with hyaluronic acid. Feels like water, acts like a long-lasting moisturizer. Perfect under makeup and SPF in Lagos humidity.',
-    ingredients: ['Hyaluronic Acid', 'Glycerin', 'Olive Extract'],
-    howTo: 'Use morning and night on clean skin.'
-  },
-  {
-    id: 'boj-relief-sun',
-    name: 'Beauty of Joseon Relief Sun SPF50+',
-    brand: 'Beauty of Joseon',
-    price: 15200,
-    comparePrice: 17500,
-    image: 'beauty-of-joseon-relief-sun.jpg',
-    category: 'Sunscreens',
-    skinType: 'All Skin Types',
-    concern: 'Sun Protection, Soothing',
-    desc: 'Lightweight, dewy chemical sunscreen with rice + probiotics. No white cast.',
-    longDesc: 'Viral K-beauty sunscreen that hydrates like a serum while providing PA++++ protection. Rice extract and grain probiotics soothe and brighten. Zero white cast on deep skin tones – a GlowLab bestseller.',
-    ingredients: ['Rice Extract', 'Niacinamide', 'Probiotics'],
-    howTo: 'Apply 15 mins before sun. Reapply every 2 hours.'
-  },
-  {
-    id: 'lrp-anthelios',
-    name: 'La Roche-Posay Anthelios SPF50+',
-    brand: 'La Roche-Posay',
-    price: 18900,
-    comparePrice: null,
-    image: 'lrp-anthelios.jpg',
-    category: 'Sunscreens',
-    skinType: 'Sensitive, Oily',
-    concern: 'Sun Protection, Shine',
-    desc: 'Ultra-light fluid sunscreen with very high protection, anti-shine finish for sensitive skin.',
-    longDesc: 'Dermatologist-recommended invisible fluid. Photostable, broad-spectrum SPF 50+ with Mexoryl filters. Ultra-resistant to sweat and humidity, ideal for Nigerian climate and acne-prone sensitive skin.',
-    ingredients: ['Mexoryl XL & SX', 'Glycerin', 'Thermal Water'],
-    howTo: 'Shake well, apply as last step AM.'
-  },
-  {
-    id: 'eucerin-oil-control',
-    name: 'Eucerin Oil Control SPF50+',
-    brand: 'Eucerin',
-    price: 16300,
-    comparePrice: null,
-    image: 'eucerin-oil-control.jpg',
-    category: 'Sunscreens',
-    skinType: 'Oily, Acne-Prone',
-    concern: 'Oil Control, Acne',
-    desc: 'Mattifying sun gel-cream with advanced oil control and dry-touch finish.',
-    longDesc: 'Designed for oily and acne-prone skin. Controls oil for up to 8 hours with sebum-regulating technology while providing broad-spectrum SPF 50+. Dry touch, non-sticky.',
-    ingredients: ['Licochalcone A', 'Glycyrrhetinic Acid', 'Mattifying Tech'],
-    howTo: 'Apply generously before sun exposure.'
-  },
-  {
-    id: 'ordinary-niacinamide',
-    name: 'The Ordinary Niacinamide 10% + Zinc',
-    brand: 'The Ordinary',
-    price: 9800,
-    comparePrice: 11500,
-    image: 'the-ordinary-niacinamide.jpg',
-    category: 'Serums',
-    skinType: 'Oily, Combination',
-    concern: 'Pores, Blemishes, Oil',
-    desc: 'High-strength vitamin and mineral blemish formula to visibly reduce pores.',
-    longDesc: 'Best-selling serum for blemish-prone skin. 10% Niacinamide (Vitamin B3) helps regulate sebum and even tone, while zinc balances. Perfect intro serum for beginners.',
-    ingredients: ['Niacinamide 10%', 'Zinc PCA 1%', 'Tamarind'],
-    howTo: 'Apply 1-2 drops AM/PM after cleansing.'
-  },
-  {
-    id: 'cosrx-snail',
-    name: 'COSRX Snail Mucin Essence',
-    brand: 'COSRX',
-    price: 14200,
-    comparePrice: null,
-    image: 'cosrx-snail-mucin.jpg',
-    category: 'Serums',
-    skinType: 'Dry, Dull, Sensitive',
-    concern: 'Hydration, Repair',
-    desc: '96% snail secretion filtrate to repair, hydrate and give glass-skin glow.',
-    longDesc: 'K-beauty holy grail for barrier repair and glow. Lightweight essence that plumps, fades post-acne marks and calms irritation. Works beautifully under moisturizer.',
-    ingredients: ['Snail Secretion Filtrate 96%', 'Sodium Hyaluronate', 'Allantoin'],
-    howTo: 'Pat onto skin after toner, before moisturizer.'
-  },
-  {
-    id: 'garnier-vitc',
-    name: 'Garnier Vitamin C Serum',
-    brand: 'Garnier',
-    price: 8900,
-    comparePrice: 10500,
-    image: 'garnier-vitamin-c.jpg',
-    category: 'Serums',
-    skinType: 'All, Dull',
-    concern: 'Hyperpigmentation, Brightening',
-    desc: 'Brightening serum with Vitamin C + Niacinamide to reduce dark spots in 3 days.',
-    longDesc: 'Affordable brightening powerhouse. Concentrated Vitamin C derivative + Niacinamide targets dark spots, hyperpigmentation and dullness without irritation. Great for Lagos sun-exposed skin.',
-    ingredients: ['Vitamin C Derivative', 'Niacinamide', 'Salicylic Acid'],
-    howTo: 'Apply 3-4 drops each morning, follow with SPF.'
-  },
-  {
-    id: 'paulas-bha',
-    name: 'Paula’s Choice 2% BHA Liquid Exfoliant',
-    brand: 'Paula’s Choice',
-    price: 21500,
-    comparePrice: 24500,
-    image: 'paulas-choice-bha.jpg',
-    category: 'Exfoliants',
-    skinType: 'Oily, Acne-Prone, Combo',
-    concern: 'Blackheads, Texture, Pores',
-    desc: 'Leave-on salicylic acid exfoliant to unclog pores and smooth texture.',
-    longDesc: 'The OG pore-clearing treatment. 2% salicylic acid penetrates inside pores to dissolve blackheads, reduce breakouts and smooth bumps. Gentle enough for daily use after building tolerance.',
-    ingredients: ['Salicylic Acid 2%', 'Green Tea Extract', 'Methylpropanediol'],
-    howTo: 'Use 2-3x/week PM after cleansing. No rinse.'
-  },
-  {
-    id: 'skin1004-centella',
-    name: 'Skin1004 Centella Ampoule',
-    brand: 'Skin1004',
-    price: 13800,
-    comparePrice: null,
-    image: 'skin1004-centella.jpg',
-    category: 'Treatments',
-    skinType: 'Sensitive, Acne-Prone',
-    concern: 'Soothing, Redness, Barrier',
-    desc: '100% Centella Asiatica from Madagascar to calm and strengthen sensitive skin.',
-    longDesc: 'Minimalist calming ampoule with only centella extract. Powerful for redness, irritation, and post-acne repair. Ideal for beginners and sensitive skin in harsh weather.',
-    ingredients: ['Centella Asiatica Extract', 'Water', 'Butylene Glycol'],
-    howTo: 'Apply a few drops AM/PM to soothe.'
+};
+let products = [],
+  category = new URLSearchParams(location.search).get("category") || "All",
+  currentModal,
+  modalTrigger;
+let cart = storage.get("glowlab.cart.v1", []);
+cart = Array.isArray(cart)
+  ? cart.filter(
+      (i) =>
+        i &&
+        typeof i.productId === "string" &&
+        Number.isInteger(i.quantity) &&
+        i.quantity > 0 &&
+        i.quantity <= 20,
+    )
+  : [];
+cart = cart
+  .filter((i, n) => cart.findIndex((x) => x.productId === i.productId) === n)
+  .slice(0, 30);
+let config = {};
+async function api(path, body) {
+  let response;
+  try {
+    response = await fetch("/api/" + path, {
+      method: body ? "POST" : "GET",
+      credentials: "same-origin",
+      headers: body ? { "Content-Type": "application/json" } : {},
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  } catch {
+    throw new Error(
+      "Connection interrupted. Please retry. We have not confirmed that your request succeeded.",
+    );
   }
-];
-
-function formatNGN(n) {
-  return new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(n);
+  const result = await response.json().catch(() => ({
+    error: "The server returned an unexpected response. Please try again.",
+  }));
+  if (!response.ok)
+    throw new Error(result.error || "This request could not be completed.");
+  return result;
 }
-
-function productCardHTML(p, showBadge = false) {
-  const badge = p.comparePrice ? `<div class="badge-wrap"><span class="badge sage">Bestseller</span></div>` : (showBadge ? `<span class="badge">${p.category}</span>` : '');
-  return `
-  <article class="product-card" data-category="${p.category}" data-id="${p.id}">
-    <div class="product-img">
-      ${badge}
-      <img src="images/${p.image}" alt="${p.name}" loading="lazy" onerror="this.src='https://via.placeholder.com/400x400/FDF8F3/9AB19F?text=${encodeURIComponent(p.brand)}'">
-    </div>
-    <div class="product-body">
-      <div class="product-brand">${p.brand}</div>
-      <h3 class="product-name">${p.name}</h3>
-      <p class="product-desc">${p.desc}</p>
-      <div class="product-meta">
-        <span class="meta-pill">${p.skinType.split(',')[0]}</span>
-        <span class="meta-pill">${p.concern.split(',')[0]}</span>
-      </div>
-      <div class="product-foot">
-        <div class="price">${formatNGN(p.price)} ${p.comparePrice ? `<small>${formatNGN(p.comparePrice)}</small>` : ''}</div>
-        <button class="btn btn-secondary btn-view" data-view="${p.id}">View</button>
-      </div>
-    </div>
-  </article>`;
-}
-
-function renderProducts(containerId, limit = null, category = 'All') {
-  const el = document.getElementById(containerId);
+function toast(message) {
+  const el = $("#toast");
   if (!el) return;
-  let list = [...PRODUCTS];
-  if (category !== 'All') list = list.filter(p => p.category === category);
-  if (limit) list = list.slice(0, limit);
-  el.innerHTML = list.map(p => productCardHTML(p)).join('');
+  el.textContent = message;
+  el.classList.add("show");
+  clearTimeout(el.timer);
+  el.timer = setTimeout(() => el.classList.remove("show"), 4000);
 }
-
-function renderAllWithFilter() {
-  const grid = document.getElementById('allProductsGrid');
-  if (!grid) return;
-  grid.innerHTML = PRODUCTS.map(p => productCardHTML(p)).join('');
+function saveCart() {
+  storage.set("glowlab.cart.v1", cart);
+  updateCount();
 }
-
-function initFilters() {
-  const btns = document.querySelectorAll('[data-filter]');
-  if (!btns.length) return;
-  btns.forEach(btn => {
-    btn.addEventListener('click', () => {
-      btns.forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      const cat = btn.dataset.filter;
-      const featuredGrid = document.getElementById('featuredGrid');
-      const allGrid = document.getElementById('allProductsGrid');
-      if (featuredGrid && !allGrid) {
-        renderProducts('featuredGrid', 8, cat);
-        bindViewButtons();
-      }
-      if (allGrid) {
-        const filtered = cat === 'All' ? PRODUCTS : PRODUCTS.filter(p => p.category === cat);
-        allGrid.innerHTML = filtered.map(p => productCardHTML(p)).join('');
-        bindViewButtons();
-      }
-    });
-  });
+function updateCount() {
+  $$("[data-cart-count]").forEach(
+    (el) => (el.textContent = cart.reduce((s, i) => s + i.quantity, 0)),
+  );
 }
-
-function bindViewButtons() {
-  document.querySelectorAll('[data-view]').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const product = PRODUCTS.find(p => p.id === btn.dataset.view);
-      if (product) openModal(product);
-    });
-  });
-  document.querySelectorAll('.product-card').forEach(card => {
-    card.addEventListener('click', () => {
-      const product = PRODUCTS.find(p => p.id === card.dataset.id);
-      if (product) openModal(product);
-    });
-  });
+function addToCart(ids) {
+  let added = 0;
+  for (const id of ids) {
+    const p = products.find((p) => p.id === id);
+    if (!p?.available) continue;
+    const item = cart.find((i) => i.productId === id);
+    const max = Math.min(20, p.stock ?? 20);
+    if (item && item.quantity < max) {
+      item.quantity++;
+      added++;
+    } else if (!item && max > 0 && cart.length < 30) {
+      cart.push({ productId: id, quantity: 1 });
+      added++;
+    }
+  }
+  saveCart();
+  renderCart();
+  toast(
+    added
+      ? `${added} ${added === 1 ? "item" : "items"} added to your cart.`
+      : "No items added. Check availability or quantity limits.",
+  );
 }
-
-function openModal(p) {
-  const backdrop = document.getElementById('productModal');
+function card(p) {
+  return `<article class="product-card" data-id="${escapeHTML(p.id)}"><div class="product-img"><span class="badge">${escapeHTML(p.category)}</span><a href="products.html?product=${encodeURIComponent(p.id)}" data-view="${escapeHTML(p.id)}"><img src="images/${escapeHTML(p.image)}" alt="${escapeHTML(p.name)}" loading="lazy"></a></div><div class="product-body"><div class="product-brand">${escapeHTML(p.brand)}</div><h3 class="product-name"><a href="products.html?product=${encodeURIComponent(p.id)}" data-view="${escapeHTML(p.id)}">${escapeHTML(p.name)}</a></h3><p class="product-desc">${escapeHTML(p.description)}</p><div class="product-foot"><div class="price">${money(p.price)}</div><span class="small">${p.available ? "Demo available" : "Unavailable"}</span><div class="product-actions"><button class="btn btn-secondary" data-view="${escapeHTML(p.id)}">Details</button><button class="btn btn-primary" data-add="${escapeHTML(p.id)}" ${!p.available ? "disabled" : ""}>Add to cart</button></div></div></div></article>`;
+}
+function renderProducts() {
+  const search = $("#productSearch")?.value.toLowerCase().trim() || "";
+  const filtered = products.filter(
+    (p) =>
+      (category === "All" || p.category === category) &&
+      `${p.name} ${p.brand} ${p.skin_type} ${p.category}`
+        .toLowerCase()
+        .includes(search),
+  );
+  const grid = $("#allProductsGrid") || $("#featuredGrid");
+  if (grid)
+    grid.innerHTML = filtered.length
+      ? filtered
+          .slice(0, $("#allProductsGrid") ? 100 : 8)
+          .map(card)
+          .join("")
+      : '<p class="empty-state">No products match. Try a different name or category.</p>';
+  if ($("#productCount"))
+    $("#productCount").textContent =
+      `${filtered.length} products · Existing demo catalogue · Prices in NGN`;
+  $$("[data-filter]").forEach((b) =>
+    b.classList.toggle("active", b.dataset.filter === category),
+  );
+}
+function openModal(p, trigger) {
+  const backdrop = $("#productModal");
   if (!backdrop) return;
-  document.getElementById('modalImg').src = `images/${p.image}`;
-  document.getElementById('modalImg').alt = p.name;
-  document.getElementById('modalBrand').textContent = p.brand;
-  document.getElementById('modalName').textContent = p.name;
-  document.getElementById('modalPrice').innerHTML = `${formatNGN(p.price)} ${p.comparePrice ? `<small style="text-decoration:line-through;color:#9CA3AF;margin-left:8px;">${formatNGN(p.comparePrice)}</small>` : ''}`;
-  document.getElementById('modalDesc').textContent = p.longDesc;
-  document.getElementById('modalSkin').textContent = p.skinType;
-  document.getElementById('modalConcern').textContent = p.concern;
-  document.getElementById('modalCategory').textContent = p.category;
-  document.getElementById('modalHowTo').textContent = p.howTo;
-  const ingList = document.getElementById('modalIngredients');
-  ingList.innerHTML = p.ingredients.map(i => `<li>${i}</li>`).join('');
-  backdrop.classList.add('open');
-  document.body.style.overflow = 'hidden';
+  currentModal = p;
+  modalTrigger = trigger || document.activeElement;
+  $("#modalImg").src = "images/" + p.image;
+  $("#modalImg").alt = p.name;
+  $("#modalBrand").textContent = p.brand;
+  $("#modalName").textContent = p.name;
+  $("#modalPrice").textContent = money(p.price);
+  $("#modalDesc").textContent = p.description;
+  $("#modalAvailability").textContent = p.available
+    ? `Demo available${p.stock !== null ? " · " + p.stock + " remaining" : ""}`
+    : "Currently unavailable";
+  $("#modalVerified").textContent = p.details_verified
+    ? "Product details supplied by the catalogue. Check packaging before use."
+    : "Detailed formulation and usage are not verified in the existing catalogue. Check manufacturer packaging before use. No medical benefits are promised.";
+  $("#modalHowTo").textContent = p.usage || "";
+  $("#modalIngredients").textContent = (p.ingredients || []).join(" · ");
+  $("#modalAdd").disabled = !p.available;
+  backdrop.classList.add("open");
+  document.body.style.overflow = "hidden";
+  $(".modal", backdrop).focus();
 }
-
 function closeModal() {
-  const backdrop = document.getElementById('productModal');
-  if (!backdrop) return;
-  backdrop.classList.remove('open');
-  document.body.style.overflow = '';
+  const el = $("#productModal");
+  if (!el) return;
+  el.classList.remove("open");
+  document.body.style.overflow = "";
+  modalTrigger?.focus();
 }
-
-function initModal() {
-  const backdrop = document.getElementById('productModal');
-  if (!backdrop) return;
-  backdrop.addEventListener('click', (e) => {
-    if (e.target === backdrop) closeModal();
-  });
-  document.querySelectorAll('[data-close-modal]').forEach(b => b.addEventListener('click', closeModal));
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
-}
-
-function initMobileMenu() {
-  const toggle = document.getElementById('mobileToggle');
-  const menu = document.getElementById('mobileMenu');
-  if (!toggle || !menu) return;
-  toggle.addEventListener('click', () => {
-    const open = menu.classList.toggle('open');
-    toggle.setAttribute('aria-expanded', open);
-    document.body.style.overflow = open ? 'hidden' : '';
-    toggle.innerHTML = open ? '✕' : '☰';
-  });
-  menu.querySelectorAll('a, .btn').forEach(a => a.addEventListener('click', () => {
-    menu.classList.remove('open');
-    toggle.innerHTML = '☰';
-    document.body.style.overflow = '';
+function cartLines() {
+  return cart.map((i) => ({
+    ...i,
+    product: products.find((p) => p.id === i.productId),
   }));
 }
-
-function initFAQ() {
-  document.querySelectorAll('.faq-item').forEach(item => {
-    const q = item.querySelector('.faq-q');
-    q.addEventListener('click', () => {
-      const wasOpen = item.classList.contains('open');
-      document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
-      if (!wasOpen) item.classList.add('open');
-    });
-  });
-  // category filter for FAQ page
-  const catBtns = document.querySelectorAll('.faq-cats button');
-  catBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-      catBtns.forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      const cat = btn.dataset.faqCat;
-      document.querySelectorAll('.faq-item').forEach(item => {
-        if (cat === 'All' || item.dataset.category === cat) item.style.display = 'block';
-        else item.style.display = 'none';
+function total() {
+  return cartLines().reduce(
+    (s, i) => s + (i.product?.price || 0) * i.quantity,
+    0,
+  );
+}
+function summaryHTML() {
+  return `<h2>Order summary</h2>${cartLines()
+    .map(
+      (i) =>
+        `<div class="summary-row"><span>${escapeHTML(i.product?.name || "Unavailable product")} × ${i.quantity}</span><strong>${money((i.product?.price || 0) * i.quantity)}</strong></div>`,
+    )
+    .join(
+      "",
+    )}<div class="summary-row"><span>Demo delivery</span><span>${money(0)}</span></div><div class="summary-row total"><span>Total</span><span>${money(total())}</span></div><p class="small">No money charged. Final availability and prices are checked by the server.</p>`;
+}
+function renderCart() {
+  const el = $("#cartContent");
+  if (!el) return;
+  if (!cart.length) {
+    el.innerHTML =
+      '<div class="empty-state"><h2>A fresh start.</h2><p>Your cart is empty. Find a few everyday essentials, or let Lumi help you choose.</p><a href="products.html" class="btn btn-primary">Explore the collection →</a><button class="text-link" data-chat-lumi>Build a routine with Lumi</button></div>';
+    return;
+  }
+  el.innerHTML = `<div class="cart-layout"><div>${cartLines()
+    .map(
+      (i) =>
+        `<article class="cart-item">${i.product ? `<img src="images/${escapeHTML(i.product.image)}" alt="${escapeHTML(i.product.name)}">` : "<span>—</span>"}<div><h2>${escapeHTML(i.product?.name || "Product no longer listed")}</h2><p class="small">${i.product?.available ? money(i.product.price) + " each" : "Unavailable — remove to continue"}</p><div class="quantity"><button data-quantity="${escapeHTML(i.productId)}" data-delta="-1" aria-label="Decrease ${escapeHTML(i.product?.name || "product")} quantity">−</button><span aria-label="Quantity">${i.quantity}</span><button data-quantity="${escapeHTML(i.productId)}" data-delta="1" aria-label="Increase ${escapeHTML(i.product?.name || "product")} quantity" ${i.quantity >= Math.min(20, i.product?.stock ?? 20) ? "disabled" : ""}>+</button></div><button class="remove-item" data-remove="${escapeHTML(i.productId)}">Remove</button></div><strong>${money((i.product?.price || 0) * i.quantity)}</strong></article>`,
+    )
+    .join(
+      "",
+    )}<a href="products.html" class="text-link">← Continue shopping</a></div><aside class="summary-card">${summaryHTML()}${cartLines().every((i) => i.product?.available) ? '<a class="btn btn-primary" href="checkout.html">Proceed to checkout →</a>' : '<p class="error">Remove unavailable products before checkout.</p>'}</aside></div>`;
+}
+function initCheckout() {
+  const form = $("#checkoutForm");
+  if (!form) return;
+  form.dataset.ready = "true";
+  $("#placeOrder").disabled = false;
+  if (!cart.length) {
+    $(".checkout-grid").innerHTML =
+      '<div class="empty-state"><h2>Your cart is empty</h2><p>Add a product before checkout.</p><a class="btn btn-primary" href="products.html">Browse products</a></div>';
+    return;
+  }
+  $("#checkoutSummary").innerHTML = summaryHTML();
+  const saved = storage.get("glowlab.delivery", {}, true);
+  for (const [key, value] of Object.entries(saved))
+    if (form.elements[key]) form.elements[key].value = value;
+  const customer = () =>
+    Object.fromEntries(
+      ["name", "email", "phone", "address", "city", "instructions"].map((k) => [
+        k,
+        form.elements[k].value.trim(),
+      ]),
+    );
+  form.addEventListener("input", () =>
+    storage.set("glowlab.delivery", customer(), true),
+  );
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const button = $("#placeOrder");
+    if (button.disabled) return;
+    button.disabled = true;
+    button.textContent = "Saving your demo order…";
+    $("#checkoutError").textContent = "";
+    const draft = { customer: customer(), items: cart.map((i) => ({ ...i })) };
+    const fingerprint = JSON.stringify(draft);
+    let attempt = storage.get("glowlab.attempt", null, true);
+    if (!attempt || attempt.fingerprint !== fingerprint) {
+      attempt = { fingerprint, key: crypto.randomUUID() };
+      storage.set("glowlab.attempt", attempt, true);
+    }
+    try {
+      const { order } = await api("checkout", {
+        ...draft,
+        idempotencyKey: attempt.key,
       });
-    });
-  });
-}
-
-function initScrollReveal() {
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(e => {
-      if (e.isIntersecting) {
-        e.target.classList.add('in');
-        observer.unobserve(e.target);
-      }
-    });
-  }, { threshold: 0.15 });
-  document.querySelectorAll('.reveal, .stagger').forEach(el => observer.observe(el));
-}
-
-function initBackToTop() {
-  const btn = document.getElementById('backToTop');
-  if (!btn) return;
-  window.addEventListener('scroll', () => {
-    if (window.scrollY > 600) btn.classList.add('show');
-    else btn.classList.remove('show');
-  });
-  btn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
-}
-
-function initActiveNav() {
-  const path = window.location.pathname.split('/').pop() || 'index.html';
-  document.querySelectorAll('.nav-links a').forEach(a => {
-    const href = a.getAttribute('href');
-    if (href === path || (path === '' && href === 'index.html') || (path === 'index.html' && href === 'index.html')) {
-      a.classList.add('active');
+      storage.set(
+        "glowlab.receipt",
+        { reference: order.reference, email: order.customer.email },
+        true,
+      );
+      cart = [];
+      saveCart();
+      storage.remove("glowlab.delivery", true);
+      location.href = "confirmation.html";
+    } catch (error) {
+      $("#checkoutError").textContent = error.message;
+      button.disabled = false;
+      button.textContent = "Retry demo order →";
     }
   });
 }
-
-function initChatButtons() {
-  document.querySelectorAll('[data-chat-lumi]').forEach(btn => {
-    btn.addEventListener('click', (e) => {
+async function loadConfirmation() {
+  const el = $("#confirmationContent");
+  if (!el) return;
+  const receipt = storage.get("glowlab.receipt", null, true);
+  if (!receipt) {
+    el.innerHTML =
+      '<h1>Find your demo order.</h1><p>Order details stay private. Use the browser that placed the order and your checkout email.</p><form id="recoverOrder" class="form"><label>Order reference<input class="input" name="reference" required maxlength="80"></label><label>Checkout email<input class="input" type="email" name="email" required></label><button class="btn btn-primary">Look up order</button><p class="error" role="alert"></p></form>';
+    $("#recoverOrder").addEventListener("submit", async (e) => {
       e.preventDefault();
-      if (document.getElementById('lumi')) {
-        document.getElementById('lumi').scrollIntoView({ behavior: 'smooth' });
+      const f = e.target;
+      try {
+        const input = {
+          reference: f.elements.reference.value,
+          email: f.elements.email.value,
+        };
+        await api("orders/lookup", input);
+        storage.set("glowlab.receipt", input, true);
+        loadConfirmation();
+      } catch (error) {
+        $(".error", f).textContent = error.message;
       }
-      // Try to open Botpress if loaded
-      if (window.botpress) {
-        try { window.botpress.open(); } catch {}
-      }
-      showToast('Lumi is ready to help you! ✨ Chat widget will appear here once Botpress is connected.', 4000);
     });
-  });
+    return;
+  }
+  try {
+    const { order: o } = await api("orders/lookup", receipt);
+    el.innerHTML = `<span class="eyebrow">Saved & confirmed</span><h1>Your demo order is <em>saved.</em></h1><p>This is a simulation. No money was charged and no products will be shipped.</p><div class="order-reference">${escapeHTML(o.reference)}</div><p class="small">Save this reference. Order lookup requires this browser and your checkout email.</p><div class="summary-card journey-content"><h2>Order confirmation</h2><div class="summary-row"><span>Order status</span><strong>${escapeHTML(o.order_status)}</strong></div><div class="summary-row"><span>Fulfillment</span><strong>${escapeHTML(o.fulfillment_status || "unfulfilled")}</strong></div><div class="summary-row"><span>Payment</span><strong>${escapeHTML(o.payment_status)} · ${escapeHTML(o.payment_method)}</strong></div>${o.items.map((i) => `<div class="summary-row"><span>${escapeHTML(i.product_name)} × ${i.quantity}</span><strong>${money(i.line_total)}</strong></div>`).join("")}<div class="summary-row"><span>Subtotal</span><strong>${money(o.subtotal ?? o.total)}</strong></div><div class="summary-row"><span>Demo shipping</span><strong>${money(o.shipping_fee ?? o.delivery_fee ?? 0)}</strong></div><div class="summary-row total"><span>Demo total</span><span>${money(o.total)}</span></div><p class="small">Created ${escapeHTML(new Date(o.created_at).toLocaleString())}. This is not a payment-provider receipt.</p></div><div style="margin-top:25px;display:flex;gap:16px;flex-wrap:wrap"><button class="btn btn-primary" data-chat-lumi>Ask Lumi about this order</button><a href="products.html" class="btn btn-secondary">Continue exploring</a><a href="contact.html" class="text-link">Report a problem</a></div>`;
+  } catch (error) {
+    el.innerHTML = `<h1>We couldn’t retrieve your order.</h1><p class="error">${escapeHTML(error.message)}</p><button id="retryConfirmation" class="btn btn-primary">Retry lookup</button>`;
+    $("#retryConfirmation").onclick = loadConfirmation;
+  }
 }
-
-function showToast(msg, duration = 3000) {
-  const toast = document.getElementById('toast');
-  if (!toast) return;
-  toast.textContent = msg;
-  toast.classList.add('show');
-  clearTimeout(toast._t);
-  toast._t = setTimeout(() => toast.classList.remove('show'), duration);
-}
-
-function initContactForm() {
-  const form = document.getElementById('contactForm');
+function initContact() {
+  const form = $("#contactForm");
   if (!form) return;
-  form.addEventListener('submit', (e) => {
+  form.dataset.ready = "true";
+  $("button[type=submit]", form).disabled = false;
+  let key = crypto.randomUUID();
+  form.addEventListener("input", () => (key = crypto.randomUUID()));
+  form.addEventListener("submit", async (e) => {
     e.preventDefault();
-    const btn = form.querySelector('button[type=submit]');
-    const orig = btn.textContent;
-    btn.textContent = 'Sending...';
+    const btn = $("button[type=submit]", form);
+    if (btn.disabled) return;
     btn.disabled = true;
-    setTimeout(() => {
-      btn.textContent = orig;
-      btn.disabled = false;
+    btn.textContent = "Saving ticket…";
+    const status = $("#contactStatus");
+    status.textContent = "";
+    try {
+      const { ticket } = await api("support", {
+        name: $("#name").value,
+        email: $("#email").value,
+        issue: $("#message").value,
+        priority: "normal",
+        orderReference: $("#orderReference")?.value.trim() || "",
+        idempotencyKey: key,
+      });
+      status.textContent = `Saved as ${ticket.id}. Status: ${ticket.status}. This is a demo ticket; no email has been sent.`;
       form.reset();
-      showToast('Message sent! We’ll reply within 2 hours during business hours. 💚', 4500);
-    }, 1200);
+      key = crypto.randomUUID();
+    } catch (error) {
+      status.textContent = error.message;
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Submit support ticket →";
+    }
   });
 }
-
-function initSmoothScroll() {
-  document.querySelectorAll('a[href^="#"]').forEach(a => {
-    a.addEventListener('click', (e) => {
-      const id = a.getAttribute('href');
-      if (id.length > 1) {
-        const target = document.querySelector(id);
-        if (target) {
-          e.preventDefault();
-          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+function initLumi() {
+  const launcher = document.createElement("button");
+  launcher.className = "lumi-launcher";
+  launcher.dataset.chatLumi = "";
+  launcher.setAttribute("aria-controls", "lumiPanel");
+  launcher.setAttribute("aria-expanded", "false");
+  launcher.innerHTML = "<span>✧</span> Ask Lumi";
+  document.body.append(launcher);
+  const panel = document.createElement("section");
+  panel.id = "lumiPanel";
+  panel.className = "lumi-panel";
+  panel.hidden = true;
+  panel.setAttribute("role", "dialog");
+  panel.setAttribute("aria-label", "Lumi skincare shopping assistant");
+  panel.innerHTML =
+    '<header class="lumi-header"><span class="lumi-avatar">✧</span><div><h2>Lumi</h2><p>Your skincare shopping companion</p></div><button id="closeLumi" aria-label="Close Lumi">×</button></header><div class="lumi-history" id="lumiHistory" role="log" aria-live="polite" aria-relevant="additions"></div><form class="lumi-form" id="lumiForm"><label class="small" for="lumiInput">How can I help?</label><div class="lumi-input-row"><textarea class="input" id="lumiInput" placeholder="A simple routine for oily skin…" rows="2" maxlength="2000" required></textarea><button class="btn btn-primary" aria-label="Send message">↑</button></div><p class="lumi-disclaimer">AI shopping guidance, not medical advice. Messages go to Gemini. Use fictional demo details.</p><button type="button" class="lumi-reset" id="resetLumi">Start a new conversation</button></form>';
+  document.body.append(panel);
+  if (!config.gemini)
+    $(".lumi-header p", panel).textContent = "Gemini is not configured yet";
+  const history = $("#lumiHistory");
+  let transcript = storage.get("glowlab.chat", [], true);
+  let historyToken = storage.get("glowlab.historyToken", "", true);
+  let busy = false,
+    chatTrigger;
+  if (!Array.isArray(transcript)) transcript = [];
+  const persist = () => {
+    storage.set("glowlab.chat", transcript.slice(-30), true);
+    storage.set("glowlab.historyToken", historyToken, true);
+  };
+  const append = (role, text) => {
+    const el = document.createElement("div");
+    el.className = "lumi-message " + role;
+    el.textContent = text;
+    history.append(el);
+    history.scrollTop = history.scrollHeight;
+    return el;
+  };
+  function intro() {
+    append(
+      "assistant",
+      "Hi, I’m Lumi. Let’s make skincare feel simpler. I can help you explore the collection, build a basic routine or check a demo order. What brings you here?",
+    );
+    const hints = document.createElement("div");
+    hints.className = "lumi-suggestions";
+    for (const text of [
+      "Help me build a routine",
+      "Find a cleanser",
+      "Check my order",
+    ]) {
+      const b = document.createElement("button");
+      b.textContent = text;
+      b.onclick = () => {
+        $("#lumiInput").value = text;
+        $("#lumiInput").focus();
+      };
+      hints.append(b);
+    }
+    history.append(hints);
+  }
+  for (const message of transcript) {
+    append(message.role, message.text);
+    if (message.result) renderResult(message.result);
+  }
+  if (!transcript.length) intro();
+  function renderResult(result) {
+    const ps = (result.products || []).filter((p) =>
+      products.some((x) => x.id === p.id),
+    );
+    if (ps.length) {
+      const box = document.createElement("div");
+      box.className = "lumi-products";
+      const offered = ps.map((p) => products.find((x) => x.id === p.id));
+      box.innerHTML = offered
+        .map(
+          (p) =>
+            `<div class="lumi-product"><img src="images/${escapeHTML(p.image)}" alt="${escapeHTML(p.name)}"><div><h4><a href="products.html?product=${encodeURIComponent(p.id)}">${escapeHTML(p.name)}</a></h4><p>${money(p.price)} · ${p.available ? "Demo available" : "Unavailable"}</p><label><input type="checkbox" value="${escapeHTML(p.id)}" ${!p.available ? "disabled" : ""}> Select for your cart</label></div></div>`,
+        )
+        .join("");
+      if (result.routine) {
+        const steps = document.createElement("div");
+        steps.className = "routine-steps";
+        const names = (ids) =>
+          ids
+            .map((id) => products.find((p) => p.id === id)?.name)
+            .filter(Boolean)
+            .join(" → ");
+        steps.textContent = `Morning: ${names(result.routine.morning)}\nEvening: ${names(result.routine.evening)}\nRoutine total: ${money(result.routine.total)}${result.routine.incomplete ? " · Budget or availability did not cover a full routine." : ""}\n${result.routine.note}`;
+        steps.style.whiteSpace = "pre-line";
+        box.append(steps);
+        for (const p of ps.filter((p) => p.reason)) {
+          const reason = document.createElement("p");
+          reason.className = "small";
+          reason.textContent = p.name + ": " + p.reason;
+          box.append(reason);
         }
       }
-    });
+      const button = document.createElement("button");
+      button.className = "btn btn-primary";
+      button.textContent = "Add selected to cart";
+      button.onclick = () => {
+        const ids = $$("input:checked", box).map((el) => el.value);
+        if (!ids.length) {
+          toast("Select the products you want first.");
+          return;
+        }
+        addToCart(ids);
+        $$("input:checked", box).forEach((el) => (el.checked = false));
+      };
+      box.append(button);
+      history.append(box);
+    }
+    if (result.ticket) {
+      const box = document.createElement("div");
+      box.className = "support-draft";
+      const draft = result.ticket.draft;
+      const text = document.createElement("p");
+      text.textContent = `Review support ticket (not yet saved)\n${draft.name} · ${draft.email}\n${draft.issue}${draft.orderReference ? "\nOrder: " + draft.orderReference : ""}`;
+      text.style.whiteSpace = "pre-wrap";
+      box.append(text);
+      const b = document.createElement("button");
+      b.className = "btn btn-primary";
+      b.textContent = "Submit ticket";
+      b.onclick = async () => {
+        b.disabled = true;
+        try {
+          const { ticket, historyToken: updatedHistory } = await api(
+            "support/confirm",
+            { token: result.ticket.token, historyToken },
+          );
+          if (updatedHistory) historyToken = updatedHistory;
+          const message = `Support ticket ${ticket.id} saved. Status: ${ticket.status}. No email was sent.`;
+          append("assistant", message);
+          transcript.push({ role: "assistant", text: message });
+          persist();
+          b.textContent = "Ticket saved";
+        } catch (error) {
+          append("error", error.message);
+          b.disabled = false;
+        }
+      };
+      box.append(b);
+      history.append(box);
+    }
+    history.scrollTop = history.scrollHeight;
+  }
+  function close() {
+    panel.hidden = true;
+    launcher.setAttribute("aria-expanded", "false");
+    chatTrigger?.focus();
+  }
+  window.openLumi = (trigger) => {
+    chatTrigger = trigger || document.activeElement;
+    panel.hidden = false;
+    launcher.setAttribute("aria-expanded", "true");
+    const menu = $("#mobileMenu");
+    menu?.classList.remove("open");
+    $("#mobileToggle")?.setAttribute("aria-expanded", "false");
+    document.body.style.overflow = "";
+    $("#lumiInput").focus();
+    history.scrollTop = history.scrollHeight;
+  };
+  $("#closeLumi").onclick = close;
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !panel.hidden) close();
+  });
+  $("#resetLumi").onclick = () => {
+    if (busy) return;
+    historyToken = "";
+    transcript = [];
+    persist();
+    history.replaceChildren();
+    intro();
+  };
+  $("#lumiInput").addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      $("#lumiForm").requestSubmit();
+    }
+  });
+  $("#lumiForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (busy) return;
+    const input = $("#lumiInput");
+    const message = input.value.trim();
+    if (!message) return;
+    busy = true;
+    const send =
+      $("button[type=submit]", panel) || $(".lumi-input-row button", panel);
+    send.disabled = true;
+    $("#resetLumi").disabled = true;
+    append("user", message);
+    transcript.push({ role: "user", text: message });
+    input.value = "";
+    persist();
+    const loading = append("assistant", "Lumi is thinking…");
+    loading.setAttribute("role", "status");
+    try {
+      const result = await api("lumi", {
+        message,
+        ...(historyToken ? { historyToken } : {}),
+      });
+      historyToken = result.historyToken;
+      loading.remove();
+      append("assistant", result.text);
+      renderResult(result);
+      transcript.push({
+        role: "assistant",
+        text: result.text,
+        result: {
+          products: result.products,
+          routine: result.routine,
+          ticket: result.ticket,
+        },
+      });
+      persist();
+    } catch (error) {
+      loading.remove();
+      append("error", error.message);
+      input.value = message;
+    } finally {
+      busy = false;
+      send.disabled = false;
+      $("#resetLumi").disabled = false;
+      input.focus();
+    }
   });
 }
-
-// Init
-document.addEventListener('DOMContentLoaded', () => {
-  renderProducts('featuredGrid', 8, 'All');
-  renderAllWithFilter();
-  initFilters();
-  bindViewButtons();
-  initModal();
-  initMobileMenu();
-  initFAQ();
-  initScrollReveal();
-  initBackToTop();
-  initActiveNav();
-  initChatButtons();
-  initContactForm();
-  initSmoothScroll();
-
-  // Add year
-  const yearEl = document.getElementById('year');
-  if (yearEl) yearEl.textContent = new Date().getFullYear();
+function events() {
+  document.addEventListener("click", (e) => {
+    const chat = e.target.closest("[data-chat-lumi]");
+    if (chat) {
+      e.preventDefault();
+      if ($("#productModal")?.classList.contains("open")) closeModal();
+      window.openLumi?.(chat);
+      return;
+    }
+    const add = e.target.closest("[data-add]");
+    if (add) {
+      addToCart([add.dataset.add]);
+      return;
+    }
+    const view = e.target.closest("[data-view]");
+    if (view) {
+      e.preventDefault();
+      const p = products.find((p) => p.id === view.dataset.view);
+      if (p) openModal(p, view);
+      return;
+    }
+    if (
+      e.target.closest("[data-close-modal]") ||
+      e.target.id === "productModal"
+    ) {
+      closeModal();
+      return;
+    }
+    const quantity = e.target.closest("[data-quantity]");
+    if (quantity) {
+      const i = cart.find((i) => i.productId === quantity.dataset.quantity);
+      if (i) {
+        const p = products.find((p) => p.id === i.productId);
+        i.quantity = Math.min(
+          Math.min(20, p?.stock ?? 20),
+          i.quantity + Number(quantity.dataset.delta),
+        );
+        if (i.quantity < 1) cart = cart.filter((x) => x !== i);
+        saveCart();
+        renderCart();
+      }
+      return;
+    }
+    const remove = e.target.closest("[data-remove]");
+    if (remove) {
+      cart = cart.filter((i) => i.productId !== remove.dataset.remove);
+      saveCart();
+      renderCart();
+    }
+  });
+  $("#modalAdd")?.addEventListener(
+    "click",
+    () => currentModal && addToCart([currentModal.id]),
+  );
+  $("#mobileToggle")?.addEventListener("click", () => {
+    const open = $("#mobileMenu").classList.toggle("open");
+    $("#mobileToggle").setAttribute("aria-expanded", String(open));
+    $("#mobileToggle").textContent = open ? "×" : "☰";
+  });
+  $$("[data-filter]").forEach(
+    (b) =>
+      (b.onclick = () => {
+        category = b.dataset.filter;
+        renderProducts();
+      }),
+  );
+  $("#productSearch")?.addEventListener("input", renderProducts);
+  $$(".faq-q").forEach((b) => {
+    b.setAttribute(
+      "aria-expanded",
+      String(b.closest(".faq-item").classList.contains("open")),
+    );
+    b.onclick = () => {
+      const item = b.closest(".faq-item");
+      item.classList.toggle("open");
+      b.setAttribute("aria-expanded", String(item.classList.contains("open")));
+    };
+  });
+  $$(".faq-cats button").forEach(
+    (b) =>
+      (b.onclick = () => {
+        $$(".faq-cats button").forEach((x) =>
+          x.classList.toggle("active", x === b),
+        );
+        $$(".faq-item").forEach(
+          (i) =>
+            (i.hidden =
+              b.dataset.faqCat !== "All" &&
+              b.dataset.faqCat !== i.dataset.category),
+        );
+      }),
+  );
+  document.addEventListener("keydown", (e) => {
+    const modal = $("#productModal");
+    if (e.key === "Escape") closeModal();
+    if (e.key === "Tab" && modal?.classList.contains("open")) {
+      const focusable = $$(
+        'button:not([disabled]),a[href],[tabindex="0"]',
+        modal,
+      );
+      const first = focusable[0],
+        last = focusable.at(-1);
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+  });
+  window.addEventListener("storage", (e) => {
+    if (e.key === "glowlab.cart.v1") {
+      const saved = storage.get("glowlab.cart.v1", []);
+      if (Array.isArray(saved)) {
+        cart = saved.filter(
+          (i) =>
+            i &&
+            typeof i.productId === "string" &&
+            Number.isInteger(i.quantity) &&
+            i.quantity > 0 &&
+            i.quantity <= 20,
+        );
+        updateCount();
+        renderCart();
+      }
+    }
+  });
+}
+document.addEventListener("DOMContentLoaded", async () => {
+  events();
+  for (const form of $$("#checkoutForm,#contactForm"))
+    form.addEventListener("submit", (e) => {
+      if (form.dataset.ready !== "true") {
+        e.preventDefault();
+        toast(
+          "The store is not connected yet. Please wait or refresh to retry.",
+        );
+      }
+    });
+  document.addEventListener("click", (e) => {
+    if (e.target.closest("[data-retry-store]")) location.reload();
+  });
+  updateCount();
+  $("#year") && ($("#year").textContent = new Date().getFullYear());
+  const path = location.pathname.replace(".html", "");
+  $$(".nav-links a").forEach((a) =>
+    a.classList.toggle(
+      "active",
+      a.pathname.replace(".html", "") === path ||
+        (path === "/" && a.pathname === "/index.html"),
+    ),
+  );
+  try {
+    config = await api("config");
+    initContact();
+    await loadConfirmation();
+    if ($("#policyContent")) {
+      try {
+        const { policies } = await api("policies");
+        $("#policyContent").innerHTML = policies
+          .map(
+            (p) =>
+              `<section class="policy" id="${escapeHTML(p.slug)}"><h2>${escapeHTML(p.title)}</h2><p>${escapeHTML(p.content)}</p></section>`,
+          )
+          .join("");
+      } catch (error) {
+        $("#policyContent").innerHTML =
+          `<p class="error" role="alert">${escapeHTML(error.message)}</p><button class="btn btn-secondary" data-retry-store>Try again</button>`;
+      }
+    }
+    const result = await api("products");
+    products = result.products;
+    initLumi();
+    renderProducts();
+    renderCart();
+    initCheckout();
+    const id = new URLSearchParams(location.search).get("product");
+    if (id) {
+      const p = products.find((p) => p.id === id);
+      if (p) openModal(p);
+      else toast("That product is not listed.");
+    }
+    if (config.storage === "local-demo" || config.storage === "unconfigured") {
+      const bar = $(".demo-bar");
+      if (bar)
+        bar.append(
+          config.storage === "local-demo"
+            ? " · Local database preview"
+            : " · Backend not connected",
+        );
+    }
+  } catch (error) {
+    for (const el of $$("#allProductsGrid,#featuredGrid,#cartContent"))
+      el.innerHTML = `<div class="connection-state" role="alert"><h2>Let’s try that again.</h2><p class="error">${escapeHTML(error.message)}</p><button class="btn btn-secondary" data-retry-store>Try again</button></div>`;
+    if ($("#checkoutError")) $("#checkoutError").textContent = error.message;
+    if (!window.openLumi) initLumi();
+    if ($("#contactForm") && !$("#contactForm").dataset.ready) initContact();
+    if ($("#confirmationContent") && !$("#confirmationContent").children.length)
+      await loadConfirmation();
+    toast(error.message);
+  }
 });
