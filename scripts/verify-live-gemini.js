@@ -23,7 +23,15 @@ export async function verifyLiveGemini(env = process.env) {
       report.checks.push({
         name,
         status: "failed",
-        code: error.code || "VERIFICATION_FAILED",
+        code:
+          error.code ||
+          (error.status === 404
+            ? "GEMINI_MODEL_NOT_FOUND"
+            : error.status === 429
+              ? "GEMINI_RATE_LIMIT"
+              : [401, 403].includes(error.status)
+                ? "GEMINI_AUTH"
+                : "VERIFICATION_FAILED"),
         upstreamStatus:
           error.diagnostic?.upstreamStatus ||
           (Number.isInteger(error.status) ? error.status : 0),
@@ -68,15 +76,33 @@ export async function verifyLiveGemini(env = process.env) {
       apiKey: env.GEMINI_API_KEY,
       httpOptions: { timeout: 25000 },
     });
-    const response = await ai.models.generateContent({
-      model: geminiModel(env),
-      contents: "Reply only: GlowLab live connection verified.",
-      config: {
-        maxOutputTokens: 128,
-        thinkingConfig: { thinkingBudget: 0 },
-        temperature: 0,
-      },
-    });
+    let response;
+    try {
+      response = await ai.models.generateContent({
+        model: geminiModel(env),
+        contents: "Reply only: GlowLab live connection verified.",
+        config: { maxOutputTokens: 512, temperature: 0 },
+      });
+    } catch (error) {
+      if (error.status === 404) {
+        try {
+          const models = await ai.models.list({ config: { pageSize: 100 } });
+          const names = [];
+          for await (const model of models) {
+            if (
+              model.name &&
+              /^models\/gemini[\w.-]+$/.test(model.name) &&
+              model.supportedActions?.includes("generateContent")
+            )
+              names.push(model.name);
+          }
+          report.availableGenerativeModels = names;
+        } catch {
+          report.modelDiscovery = "failed";
+        }
+      }
+      throw error;
+    }
     demand(!!response.text?.trim(), "GEMINI_EMPTY_RESPONSE");
     demand(leakFree(response.text), "MODEL_SECRET_LEAK");
     return { nonemptyModelResponse: true };
