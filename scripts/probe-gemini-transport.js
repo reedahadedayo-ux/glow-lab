@@ -47,3 +47,76 @@ export async function probeGeminiTransport() {
   }
   console.log("GLOWLAB_GEMINI_TRANSPORT " + JSON.stringify(checks));
 }
+
+// Actual revised responder + official SDK + actual deployed catalogue; no fallback records.
+export async function probeLumiRecovery() {
+  const { respond } = await import("../server/lumi.js");
+  const { signer } = await import("../server/security.js");
+  const { randomBytes } = await import("node:crypto");
+  const session = signer(randomBytes(32).toString("hex"));
+  let historyToken;
+  let reads = 0;
+  const store = {
+    products: async () => {
+      reads++;
+      const response = await fetch(
+        "https://glow-lab-puce.vercel.app/api/products",
+        { signal: AbortSignal.timeout(10000) },
+      );
+      if (!response.ok) throw new Error("Catalogue unavailable");
+      const data = await response.json();
+      if (data.backend !== "supabase" || data.products?.length !== 12)
+        throw new Error("Catalogue verification failed");
+      return data.products;
+    },
+  };
+  const checks = [];
+  for (const message of [
+    "Hello Lumi",
+    "Find CeraVe Foaming Facial Cleanser in the catalogue and tell me the price.",
+  ]) {
+    const start = Date.now();
+    const tools = [];
+    try {
+      const response = await respond({
+        message,
+        historyToken,
+        store,
+        owner: "read-only-diagnostic",
+        signer: session,
+        env: { ...process.env, GEMINI_MODEL: "gemini-3.5-flash" },
+        observeTool: (event) => tools.push(event),
+      });
+      historyToken = response.historyToken;
+      checks.push({
+        ok: true,
+        elapsedMs: Date.now() - start,
+        hasText: Boolean(response.text),
+        products: response.products.map((p) => ({ id: p.id, price: p.price })),
+        tools,
+      });
+    } catch (error) {
+      checks.push({
+        ok: false,
+        elapsedMs: Date.now() - start,
+        code: error.code || "PROBE_FAILED",
+        upstreamStatus: error.diagnostic?.upstreamStatus || 0,
+        tools,
+      });
+    }
+    console.log("GLOWLAB_LUMI_RECOVERY_CHECK " + JSON.stringify(checks.at(-1)));
+  }
+  const passed =
+    checks.every((c) => c.ok && c.hasText) &&
+    checks[1].products?.some(
+      (p) => p.id === "cerave-foaming" && p.price === 14500,
+    ) &&
+    reads > 0;
+  console.log(
+    "GLOWLAB_LUMI_RECOVERY " + JSON.stringify({ passed, reads, checks }),
+  );
+  if (!passed)
+    throw new Error(
+      "Actual Lumi recovery verification failed; not safe to promote",
+    );
+}

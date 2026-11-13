@@ -4,6 +4,10 @@ export { systemInstruction } from "./lumi-system-prompt.js";
 import { declarations, executeTool } from "./tools.js";
 import { AppError } from "./validation.js";
 import { redactSecrets } from "./secret-safety.js";
+import {
+  generateWithRecovery,
+  GEMINI_REQUEST_BUDGET_MS,
+} from "./gemini-request.js";
 export const geminiModel = (env = process.env) =>
   env.GEMINI_MODEL || "gemini-2.5-flash";
 
@@ -42,19 +46,24 @@ export async function respond({
   const products = new Map();
   let routine = null;
   let ticket = null;
+  const deadline = Date.now() + GEMINI_REQUEST_BUDGET_MS;
   for (let step = 0; step < 6; step++) {
     let response;
     try {
-      response = await ai.models.generateContent({
-        model: geminiModel(env),
-        contents,
-        config: {
-          systemInstruction,
-          tools: [{ functionDeclarations: declarations }],
-          temperature: 0.2,
-          maxOutputTokens: 1400,
+      response = await generateWithRecovery(
+        ai,
+        {
+          model: geminiModel(env),
+          contents,
+          config: {
+            systemInstruction,
+            tools: [{ functionDeclarations: declarations }],
+            temperature: 0.2,
+            maxOutputTokens: 1400,
+          },
         },
-      });
+        deadline,
+      );
     } catch (e) {
       const status = Number.isInteger(e.status) ? e.status : 0;
       const code =
