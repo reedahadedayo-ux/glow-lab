@@ -19,3 +19,8 @@ The branch first had to be pushed before Vercel accepted branch-scoped variables
 Gemini remains unconfigured; no real Lumi model response is claimed. The preceding PRODUCTION-READINESS report remains the detailed test/gate history, but its statement that no push or Vercel preview exists is superseded by this record. No production release has occurred.
 
 Confirmed latest READY production deployment remains the preexisting `dpl_En6EwuqBkpjEMCt8aWvtcVmK9Ekf` (older commit `fb38afc786491b2cc9694e788ee58ee7c9e89f8a`). Do not promote this preview or update production domains without the user's approval.
+
+## Superseding Gemini-enabled preview
+
+On 13 November 2026, deployed revision `65120a6` as **READY / STAGED preview** `dpl_7BP2WMGLhV45R6Ej38T1YCERUBcg`: https://glow-4yvbc5x4g-reedahadedayo-uxs-projects.vercel.app .
+Read **GEMINI-VERIFICATION.md** for actual successful Gemini SDK/search/routine and Supabase HTTPS evidence, model correction to gemini-3.5-flash, secret audit and remaining public-preview acceptance boundary. The earlier statement that Gemini is unconfigured is superseded. Production remains untouched.
