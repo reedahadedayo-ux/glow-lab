@@ -36,7 +36,7 @@ test("frontend has no SDK import, Google API endpoint or public key variable; of
       "@google/genai"
     ],
   );
-  assert.equal(geminiModel({}), "gemini-2.5-flash");
+  assert.equal(geminiModel({}), "gemini-3.1-flash-lite");
 });
 
 test("exact backend secrets and Google-key patterns are redacted recursively without modifying the environment", () => {

@@ -4,7 +4,7 @@ import { createGroqClient, ProviderFailure } from "./groq.js";
 import { generateWithRecovery } from "./gemini-request.js";
 
 export const geminiModel = (env = process.env) =>
-  env.GEMINI_MODEL || "gemini-2.5-flash";
+  env.GEMINI_MODEL || "gemini-3.1-flash-lite";
 export const LLM_REQUEST_BUDGET_MS = 90000;
 
 // One router per assistant request. Once failed over, stay on Gemini for later rounds.
