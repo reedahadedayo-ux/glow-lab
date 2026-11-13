@@ -25,3 +25,11 @@ if (
   const { probeDeployedLumi } = await import("./probe-deployed-lumi.js");
   await probeDeployedLumi();
 }
+
+if (
+  process.env.VERCEL_ENV === "preview" &&
+  process.env.GLOWLAB_PROBE_DEPLOYED_LUMI === "1"
+) {
+  const { probeGeminiTransport } = await import("./probe-gemini-transport.js");
+  await probeGeminiTransport();
+}
