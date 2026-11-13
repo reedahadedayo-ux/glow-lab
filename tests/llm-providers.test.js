@@ -311,3 +311,20 @@ test("HTTP Lumi contract delivers primary/fallback and honest dual failure throu
     }
   }
 });
+
+test("current privacy projection is shared by assistant/API without changing stored or future configured text", async () => {
+  const { publicPolicy } = await import("../server/policy-copy.js");
+  const original = JSON.parse(readFileSync("data/policies.json", "utf8")).find(
+    (p) => p.slug === "privacy",
+  );
+  const before = original.content;
+  const shown = publicPolicy(original);
+  assert.match(shown.content, /Groq.*Google Gemini/);
+  assert.match(shown.content, /Make workflow/);
+  assert.equal(original.content, before);
+  const future = {
+    ...original,
+    content: "Owner-authored future privacy notice.",
+  };
+  assert.equal(publicPolicy(future), future);
+});

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { AppError, parse, ticketSchema } from "./validation.js";
 import { publicProduct } from "./catalogue.js";
+import { publicPolicy } from "./policy-copy.js";
 const str = { type: "STRING" };
 export const declarations = [
   {
@@ -126,7 +127,7 @@ export async function executeTool(
     }
     case "get_store_policy": {
       const a = parse(z.object({ topic: z.string().max(100) }), args);
-      const policies = await store.policies();
+      const policies = (await store.policies()).map(publicPolicy);
       const terms = a.topic.toLowerCase();
       const matches = policies.filter(
         (p) =>

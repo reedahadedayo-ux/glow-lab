@@ -1,0 +1,592 @@
+{
+  "name": "GlowLab - Order Acknowledgement v1 - SANITISED IMPORT TEMPLATE",
+  "flow": [
+    {
+      "id": 1,
+      "module": "gateway:CustomWebHook",
+      "version": 1,
+      "parameters": {
+        "maxResults": 1
+      },
+      "mapper": {},
+      "metadata": {
+        "designer": {
+          "x": -138,
+          "y": 144,
+          "name": "Supabase order INSERT webhook"
+        }
+      }
+    },
+    {
+      "id": 2,
+      "module": "util:SetVariables",
+      "version": 1,
+      "parameters": {},
+      "filter": {
+        "name": "Valid order INSERT event",
+        "conditions": [
+          [
+            {
+              "a": "{{1.type}}",
+              "o": "text:equal",
+              "b": "INSERT"
+            },
+            {
+              "a": "{{1.table}}",
+              "o": "text:equal",
+              "b": "orders"
+            }
+          ]
+        ]
+      },
+      "mapper": {
+        "variables": [
+          {
+            "name": "supabase_url",
+            "value": ""
+          },
+          {
+            "name": "service_key",
+            "value": ""
+          }
+        ]
+      },
+      "metadata": {
+        "designer": {
+          "x": 300,
+          "y": 0,
+          "name": "Config"
+        }
+      }
+    },
+    {
+      "id": 3,
+      "module": "http:ActionSendData",
+      "version": 3,
+      "parameters": {
+        "handleErrors": false,
+        "useNewZLibDeCompress": true
+      },
+      "mapper": {
+        "url": "{{2.supabase_url}}/rest/v1/rpc/claim_order_notification",
+        "serializeUrl": false,
+        "method": "post",
+        "headers": [
+          {
+            "name": "apikey",
+            "value": "{{2.service_key}}"
+          },
+          {
+            "name": "Authorization",
+            "value": "Bearer {{2.service_key}}"
+          },
+          {
+            "name": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "qs": [],
+        "bodyType": "raw",
+        "parseResponse": true,
+        "authUser": "",
+        "authPass": "",
+        "timeout": 40,
+        "shareCookies": false,
+        "ca": "",
+        "rejectUnauthorized": true,
+        "followRedirect": true,
+        "useQuerystring": false,
+        "gzip": true,
+        "useMtls": false,
+        "contentType": "application/json",
+        "data": "{\"p_order_id\": \"{{1.record.id}}\", \"p_type\": \"order_acknowledgement\"}",
+        "followAllRedirects": false
+      },
+      "metadata": {
+        "designer": {
+          "x": 600,
+          "y": 0,
+          "name": "Claim notification (idempotency)"
+        }
+      },
+      "onerror": [
+        {
+          "id": 20,
+          "module": "builtin:Break",
+          "version": 1,
+          "parameters": {},
+          "mapper": {
+            "retry": true,
+            "count": "5",
+            "interval": "1"
+          },
+          "metadata": {
+            "designer": {
+              "x": 549,
+              "y": 526,
+              "name": "Break (retry from failed module)"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "module": "util:FunctionSleep",
+      "version": 1,
+      "parameters": {},
+      "filter": {
+        "name": "Newly claimed (not a duplicate)",
+        "conditions": [
+          [
+            {
+              "a": "{{length(3.data)}}",
+              "b": "0",
+              "o": "number:greater"
+            }
+          ]
+        ]
+      },
+      "mapper": {
+        "duration": "10"
+      },
+      "metadata": {
+        "designer": {
+          "x": 900,
+          "y": 0,
+          "name": "Wait for order items to be saved"
+        }
+      }
+    },
+    {
+      "id": 5,
+      "module": "http:ActionSendData",
+      "version": 3,
+      "parameters": {
+        "handleErrors": false,
+        "useNewZLibDeCompress": true
+      },
+      "mapper": {
+        "url": "{{2.supabase_url}}/rest/v1/orders",
+        "method": "get",
+        "headers": [
+          {
+            "name": "apikey",
+            "value": "{{2.service_key}}"
+          },
+          {
+            "name": "Authorization",
+            "value": "Bearer {{2.service_key}}"
+          },
+          {
+            "name": "Accept-Profile",
+            "value": "glowlab"
+          },
+          {
+            "name": "Accept",
+            "value": "application/vnd.pgrst.object+json"
+          }
+        ],
+        "qs": [
+          {
+            "name": "id",
+            "value": "eq.{{1.record.id}}"
+          },
+          {
+            "name": "select",
+            "value": "*,order_items!inner(*)"
+          }
+        ],
+        "parseResponse": true,
+        "serializeUrl": false,
+        "shareCookies": false,
+        "rejectUnauthorized": true,
+        "followRedirect": true,
+        "useQuerystring": false,
+        "gzip": true,
+        "useMtls": false,
+        "followAllRedirects": false,
+        "timeout": 40,
+        "bodyType": ""
+      },
+      "metadata": {
+        "designer": {
+          "x": 1049,
+          "y": -502,
+          "name": "Get order + items (authoritative)"
+        }
+      },
+      "onerror": [
+        {
+          "id": 21,
+          "module": "http:ActionSendData",
+          "version": 3,
+          "parameters": {
+            "handleErrors": false,
+            "useNewZLibDeCompress": true
+          },
+          "mapper": {
+            "url": "{{2.supabase_url}}/rest/v1/order_notifications",
+            "method": "patch",
+            "headers": [
+              {
+                "name": "apikey",
+                "value": "{{2.service_key}}"
+              },
+              {
+                "name": "Authorization",
+                "value": "Bearer {{2.service_key}}"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              },
+              {
+                "name": "Prefer",
+                "value": "return=minimal"
+              }
+            ],
+            "qs": [
+              {
+                "name": "order_id",
+                "value": "eq.{{1.record.id}}"
+              },
+              {
+                "name": "notification_type",
+                "value": "eq.order_acknowledgement"
+              }
+            ],
+            "parseResponse": true,
+            "serializeUrl": false,
+            "shareCookies": false,
+            "rejectUnauthorized": true,
+            "followRedirect": true,
+            "useQuerystring": false,
+            "gzip": true,
+            "useMtls": false,
+            "followAllRedirects": false,
+            "timeout": 40,
+            "bodyType": "x_www_form_urlencoded",
+            "formFields": [
+              {
+                "key": "status",
+                "value": "failed"
+              },
+              {
+                "key": "last_error",
+                "value": "Order or items not found / Supabase error: {{substring(5.error.message; 0; 500)}}"
+              }
+            ]
+          },
+          "metadata": {
+            "designer": {
+              "x": 1492,
+              "y": -474,
+              "name": "Mark notification failed"
+            }
+          }
+        },
+        {
+          "id": 22,
+          "module": "builtin:Break",
+          "version": 1,
+          "parameters": {},
+          "mapper": {
+            "retry": true,
+            "count": "5",
+            "interval": "1"
+          },
+          "metadata": {
+            "designer": {
+              "x": 1500,
+              "y": 300,
+              "name": "Break (retry from failed module)"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "module": "builtin:BasicRouter",
+      "version": 1,
+      "mapper": null,
+      "parameters": {},
+      "metadata": {
+        "designer": {
+          "x": 1500,
+          "y": 0
+        }
+      },
+      "routes": [
+        {
+          "flow": [
+            {
+              "id": 8,
+              "module": "builtin:BasicFeeder",
+              "version": 1,
+              "parameters": {},
+              "filter": {
+                "name": "Customer email present",
+                "conditions": [
+                  [
+                    {
+                      "a": "{{1.record.customer_email}}",
+                      "o": "exist",
+                      "b": null
+                    }
+                  ]
+                ]
+              },
+              "mapper": {
+                "array": "{{5.data.order_items}}"
+              },
+              "metadata": {
+                "designer": {
+                  "x": 1800,
+                  "y": -150,
+                  "name": "Iterate order items"
+                }
+              }
+            },
+            {
+              "id": 9,
+              "module": "util:TextAggregator",
+              "version": 1,
+              "parameters": {
+                "rowSeparator": "",
+                "feeder": 8
+              },
+              "mapper": {
+                "value": "<tr><td style=\"padding:6px 8px;border-bottom:1px solid #eee\">{{8.item_name}}</td>\n<td align=\"center\" style=\"padding:6px 8px;border-bottom:1px solid #eee\">{{8.quantity}}</td>\n<td align=\"right\" style=\"padding:6px 8px;border-bottom:1px solid #eee\">\u20a6{{formatNumber(8.unit_price; 2; \".\"; \",\")}}</td>\n<td align=\"right\" style=\"padding:6px 8px;border-bottom:1px solid #eee\">\u20a6{{formatNumber(8.quantity * 8.unit_price; 2; \".\"; \",\")}}</td></tr>"
+              },
+              "metadata": {
+                "designer": {
+                  "x": 2100,
+                  "y": -150
+                }
+              }
+            },
+            {
+              "id": 10,
+              "module": "google-email:sendAnEmail",
+              "version": 4,
+              "parameters": {},
+              "mapper": {
+                "to": ["{{1.record.customer_email}}"],
+                "subject": "GlowLab - We've received your order #{{1.record.reference}}",
+                "bodyType": "rawHtml",
+                "content": "<div style=\"display:none;max-height:0;overflow:hidden;opacity:0;font-size:1px;color:#FDF8F3\">We have received your GlowLab order #{{1.record.reference}}.</div>\n<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#FDF8F3;\"><tr><td align=\"center\" style=\"padding:32px 12px;\">\n<table role=\"presentation\" width=\"600\" cellpadding=\"0\" cellspacing=\"0\" style=\"width:100%;max-width:600px;background:#FFFFFF;\">\n\n<tr><td align=\"center\" style=\"padding:36px 40px 8px;\">\n<div style=\"font-family:Georgia,'Times New Roman',serif;font-size:30px;letter-spacing:1px;color:#1E2328;\">GlowLab</div>\n<div style=\"font-family:Arial,Helvetica,sans-serif;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#1E2328;padding-top:6px;\">Skincare</div>\n<div style=\"width:40px;height:2px;background:#9AB19F;margin:20px auto 0;line-height:2px;font-size:2px;\">&nbsp;</div>\n</td></tr>\n\n<tr><td style=\"padding:28px 40px 8px;\">\n<h1 style=\"margin:0 0 12px;font-family:Georgia,'Times New Roman',serif;font-size:26px;line-height:32px;font-weight:normal;color:#1E2328;\">Thank you, {{1.record.customer_name}}.</h1>\n<p style=\"margin:0;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:24px;color:#1E2328;\">We have received your order. Here is a summary for your records.</p>\n</td></tr>\n\n<tr><td style=\"padding:24px 40px 8px;\">\n<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background:#FDF8F3;\"><tr>\n<td style=\"padding:18px 20px;vertical-align:top;\">\n<div style=\"font-family:Arial,Helvetica,sans-serif;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:#1E2328;\">Order number</div>\n<div style=\"font-family:Arial,Helvetica,sans-serif;font-size:16px;color:#1E2328;padding-top:4px;\">#{{1.record.reference}}</div>\n</td>\n<td align=\"right\" style=\"padding:18px 20px;vertical-align:top;\">\n<div style=\"font-family:Arial,Helvetica,sans-serif;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:#1E2328;\">Payment status</div>\n<div style=\"padding-top:6px;\"><span style=\"display:inline-block;padding:5px 12px;background:{{switch(1.record.payment_status; \"paid\"; \"#9AB19F\"; \"#FDF8F3\")}};border:1px solid #9AB19F;font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#1E2328;\">{{switch(1.record.payment_status; \"paid\"; \"Payment received\"; \"pending\"; \"Payment pending\"; \"Payment not yet confirmed\")}}</span></div>\n</td>\n</tr></table>\n<p style=\"margin:12px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:20px;color:#1E2328;\">{{switch(1.record.payment_status; \"paid\"; \"Thank you - your payment has been confirmed.\"; \"pending\"; \"We have not yet confirmed payment for this order. We will update you once we have.\"; \"We have not yet confirmed payment for this order.\")}}</p>\n</td></tr>\n\n<tr><td style=\"padding:24px 40px 0;\">\n<table role=\"presentation\" width=\"100%\" cellpadding=\"0\" cellspacing=\"0\">\n<tr>\n<th align=\"left\" style=\"padding:10px 0;border-bottom:1px solid #9AB19F;font-family:Arial,Helvetica,sans-serif;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:#1E2328;font-weight:normal;\">Product</th>\n<th align=\"center\" style=\"padding:10px 0;border-bottom:1px solid #9AB19F;font-family:Arial,Helvetica,sans-serif;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:#1E2328;font-weight:normal;\">Qty</th>\n<th align=\"right\" style=\"padding:10px 0;border-bottom:1px solid #9AB19F;font-family:Arial,Helvetica,sans-serif;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:#1E2328;font-weight:normal;\">Price</th>\n<th align=\"right\" style=\"padding:10px 0;border-bottom:1px solid #9AB19F;font-family:Arial,Helvetica,sans-serif;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:#1E2328;font-weight:normal;\">Subtotal</th>\n</tr>\n{{9.text}}\n</table>\n</td></tr>\n\n<tr><td align=\"right\" style=\"padding:20px 40px 8px;\">\n<span style=\"font-family:Arial,Helvetica,sans-serif;font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:#1E2328;\">Order total</span>&nbsp;&nbsp;<span style=\"font-family:Georgia,'Times New Roman',serif;font-size:22px;color:#1E2328;\">&#8358;{{formatNumber(1.record.total; 2; \".\"; \",\")}}</span>\n</td></tr>\n\n<tr><td style=\"padding:24px 40px 36px;\">\n<div style=\"height:1px;background:#EFE6DB;line-height:1px;font-size:1px;\">&nbsp;</div>\n<p style=\"margin:20px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:22px;color:#1E2328;\">Questions about your order? Simply reply to this email or visit our <a href=\"https://example.invalid\" style=\"color:#1E2328;text-decoration:underline;\">contact page</a> and our customer care team will be glad to help.</p>\n<p style=\"margin:16px 0 0;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:22px;color:#1E2328;\">Warm regards,<br>The GlowLab Customer Care Team</p>\n</td></tr>\n\n<tr><td align=\"center\" style=\"background:#1E2328;padding:24px 40px;\">\n<div style=\"font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:18px;color:#FDF8F3;\">GlowLab Skincare &middot; Prices in Nigerian naira<br>GlowLab is a demo store: no real payment is taken and no goods are delivered.<br><a href=\"https://example.invalid\" style=\"color:#9AB19F;text-decoration:underline;\">Store policies</a></div>\n</td></tr>\n\n</table>\n</td></tr></table>"
+              },
+              "metadata": {
+                "designer": {
+                  "x": 1871,
+                  "y": 691
+                }
+              }
+            },
+            {
+              "id": 11,
+              "module": "http:ActionSendData",
+              "version": 3,
+              "parameters": {
+                "handleErrors": false,
+                "useNewZLibDeCompress": true
+              },
+              "mapper": {
+                "url": "{{2.supabase_url}}/rest/v1/order_notifications",
+                "method": "patch",
+                "headers": [
+                  {
+                    "name": "apikey",
+                    "value": "{{2.service_key}}"
+                  },
+                  {
+                    "name": "Authorization",
+                    "value": "Bearer {{2.service_key}}"
+                  },
+                  {
+                    "name": "Content-Type",
+                    "value": "application/x-www-form-urlencoded"
+                  },
+                  {
+                    "name": "Prefer",
+                    "value": "return=minimal"
+                  }
+                ],
+                "qs": [
+                  {
+                    "name": "order_id",
+                    "value": "eq.{{1.record.id}}"
+                  },
+                  {
+                    "name": "notification_type",
+                    "value": "eq.order_acknowledgement"
+                  }
+                ],
+                "parseResponse": true,
+                "serializeUrl": false,
+                "shareCookies": false,
+                "rejectUnauthorized": true,
+                "followRedirect": true,
+                "useQuerystring": false,
+                "gzip": true,
+                "useMtls": false,
+                "followAllRedirects": false,
+                "timeout": 40,
+                "bodyType": "x_www_form_urlencoded",
+                "formFields": [
+                  {
+                    "key": "status",
+                    "value": "sent"
+                  },
+                  {
+                    "key": "sent_at",
+                    "value": "now"
+                  },
+                  {
+                    "key": "provider_message_id",
+                    "value": "{{10.id}}"
+                  },
+                  {
+                    "key": "last_error",
+                    "value": ""
+                  }
+                ]
+              },
+              "metadata": {
+                "designer": {
+                  "x": 2700,
+                  "y": -150,
+                  "name": "Mark notification sent"
+                }
+              },
+              "onerror": [
+                {
+                  "id": 25,
+                  "module": "builtin:Break",
+                  "version": 1,
+                  "parameters": {},
+                  "mapper": {
+                    "retry": true,
+                    "count": "5",
+                    "interval": "1"
+                  },
+                  "metadata": {
+                    "designer": {
+                      "x": 3000,
+                      "y": 300,
+                      "name": "Break (retry from failed module)"
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "flow": [
+            {
+              "id": 12,
+              "module": "http:ActionSendData",
+              "version": 3,
+              "parameters": {
+                "handleErrors": false,
+                "useNewZLibDeCompress": true
+              },
+              "filter": {
+                "name": "Customer email missing",
+                "conditions": [
+                  [
+                    {
+                      "a": "{{1.record.customer_email}}",
+                      "o": "notexist",
+                      "b": null
+                    }
+                  ]
+                ]
+              },
+              "mapper": {
+                "url": "{{2.supabase_url}}/rest/v1/order_notifications",
+                "method": "patch",
+                "headers": [
+                  {
+                    "name": "apikey",
+                    "value": "{{2.service_key}}"
+                  },
+                  {
+                    "name": "Authorization",
+                    "value": "Bearer {{2.service_key}}"
+                  },
+                  {
+                    "name": "Content-Type",
+                    "value": "application/x-www-form-urlencoded"
+                  },
+                  {
+                    "name": "Prefer",
+                    "value": "return=minimal"
+                  }
+                ],
+                "qs": [
+                  {
+                    "name": "order_id",
+                    "value": "eq.{{1.record.id}}"
+                  },
+                  {
+                    "name": "notification_type",
+                    "value": "eq.order_acknowledgement"
+                  }
+                ],
+                "parseResponse": true,
+                "serializeUrl": false,
+                "shareCookies": false,
+                "rejectUnauthorized": true,
+                "followRedirect": true,
+                "useQuerystring": false,
+                "gzip": true,
+                "useMtls": false,
+                "followAllRedirects": false,
+                "timeout": 40,
+                "bodyType": "x_www_form_urlencoded",
+                "formFields": [
+                  {
+                    "key": "status",
+                    "value": "failed"
+                  },
+                  {
+                    "key": "last_error",
+                    "value": "missing_customer_email"
+                  }
+                ]
+              },
+              "metadata": {
+                "designer": {
+                  "x": 1800,
+                  "y": 150,
+                  "name": "Mark notification failed"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "instant": true,
+    "version": 1,
+    "scenario": {
+      "roundtrips": 1,
+      "maxErrors": 3,
+      "autoCommit": true,
+      "autoCommitTriggerLast": true,
+      "sequential": true,
+      "slots": null,
+      "confidential": false,
+      "dataloss": false,
+      "dlq": true,
+      "freshVariables": false
+    },
+    "zone": "eu1.make.com"
+  }
+}

@@ -38,6 +38,7 @@ def scan(data, location):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--history", action="store_true")
+    parser.add_argument("--all-refs", action="store_true", help="Include every locally available Git ref, not only HEAD.")
     args = parser.parse_args()
     findings = []
     paths = git("ls-files", "-z").decode().split("\0")
@@ -47,11 +48,11 @@ def main():
         if (ROOT / path).is_file():
             findings.extend(scan((ROOT / path).read_bytes(), path))
     blobs = 0
-    if args.history:
+    if args.history or args.all_refs:
         if git("rev-parse", "--is-shallow-repository").strip() == b"true":
             print(json.dumps({"error": "History is shallow; fetch full ancestry before publication review."}))
             return 2
-        objects = git("rev-list", "--objects", "HEAD").decode().splitlines()
+        objects = git("rev-list", "--objects", "--all" if args.all_refs else "HEAD").decode().splitlines()
         proc = subprocess.Popen(["git", "cat-file", "--batch"], cwd=ROOT,
                                 stdin=subprocess.PIPE, stdout=subprocess.PIPE)
         for obj in objects:

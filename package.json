@@ -12,10 +12,11 @@
     "format:check": "prettier --check \"*.html\" \"js/*.js\" \"css/*.css\" \"server/*.js\" \"api/*.js\" \"scripts/*.js\" \"tests/*.{js,mjs}\"",
     "test:live:supabase": "node --env-file=.env.supabase scripts/test-live-supabase.js --allow-demo-writes",
     "diagnose:supabase": "node --env-file-if-exists=.env.supabase scripts/diagnose-supabase.js",
-    "test:live:gemini": "node scripts/verify-live-gemini.js"
+    "test:live:gemini": "node scripts/verify-live-gemini.js",
+    "test:browser:providers": "node tests/browser-providers.mjs"
   },
   "engines": {
-    "node": ">=22"
+    "node": "22.x"
   },
   "dependencies": {
     "@google/genai": "^1.30.0",

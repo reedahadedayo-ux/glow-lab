@@ -1,29 +1,28 @@
-# GitHub and portfolio handoff
+# GitHub and deployment handoff
 
-## Repository status
+- Existing repository: https://github.com/reedahadedayo-ux/glow-lab (**private**).
+- Prepared branch: [`arena/7e7ec798-glow-lab`](https://github.com/reedahadedayo-ux/glow-lab/tree/arena/7e7ec798-glow-lab), based on main `b49092935bdfb72119a61e56e9e2529294e6bb23`.
+- Work is committed/pushed only to this branch. No main merge, visibility change, inherited-history deletion or production promotion is authorised/performed.
+- Original Vercel linkage and production branch remain unchanged. Protected previews are created by normal branch pushes.
 
-- Existing private repository: https://github.com/reedahadedayo-ux/glow-lab
-- Intended separate repository: `reedahadedayo-ux/glowlab-ecommerce-platform` (**not created by this task**).
-- Prepared branch: `arena/7e7ec798-glow-lab`, based on main commit `b49092935bdfb72119a61e56e9e2529294e6bb23`.
-- Full 22-commit ancestor history was fetched before review; no history rewrite, root rename or destructive reset was performed.
-- `gh repo create ... --private` was attempted, but GitHub returned `Resource not accessible by integration (createRepository)`. Existing repository authentication works; no new remote was added by the failed operation.
+## Preview verification and secrets
 
-The prepared documentation branch has been **successfully pushed to the existing private repository**. [Review the branch](https://github.com/reedahadedayo-ux/glow-lab/tree/arena/7e7ec798-glow-lab). `main` was not merged or changed. The new repository remains blocked; Vercel was not relinked and no production promotion was requested.
+With explicit owner approval the existing Groq secret temporarily gained preview scope, without reading/changing its value. Real Groq and Gemini fallback were verified on the preview-build host. Original production-only Groq scope was then restored and `GLOWLAB_VERIFY_PROVIDERS` reset to `0`. The evidence deployments retain their deployment-time snapshots and remain protected; no SSO/protection setting was weakened.
 
-## Owner action to unblock the preferred repository
+Later previews will not automatically have Groq configured after scope restoration. The inventory also did not show shared Supabase/session configuration for this branch. Configure an approved staging environment privately before claiming full deployed checkout functionality. Do not create production orders or send emails merely for review.
 
-Create an **empty private** repository named `glowlab-ecommerce-platform` in the `reedahadedayo-ux` account, without starter README/licence commits, or reconnect GitHub in Arena with suitable repository-creation permissions. Do not share credentials in chat.
+Production's older `GEMINI_MODEL` override is not the newly tested fallback default. Review it, the pinned Node runtime and rollout settings before an approved merge/promotion. [Setup](setup.md) · [Exact test evidence](testing.md).
 
-Then resume in this same tracked branch. Verify the repository exists and is private before adding a secondary remote/pushing. Do not repoint `origin`, rename the original repo or relink Vercel. Push only the current prepared branch; do not use `--mirror`, force-push, switch branches or overwrite unrelated content. Set the prepared branch as default in the new private repository if desired through an authorised reviewed operation. GitHub defaults may otherwise retain a branch name that differs from future release conventions; no rename is needed to preserve history.
+## GitHub Actions
 
-An archived/merged old PR is not the current branch. Opening/merging a new PR or deploying these changes is a separate action. The first branch push was rejected because the GitHub App lacks `workflows` permission. The CI config is therefore an **inactive template** at `docs/ci-workflow.example.yml`, not an activated workflow. The new unpushed preparation commit was amended to relocate it; inherited history was not rewritten. Once authorised, the owner can review/move the template to `.github/workflows/ci.yml` and update its formatting-check path. No executed GitHub Actions check is claimed.
+The GitHub App connection rejected workflow creation without `workflows` permission. `docs/ci-workflow.example.yml` remains an **inactive template**. Owner activation requires suitable permission, moving/reviewing it under `.github/workflows/ci.yml` and updating its formatting path. No GitHub Actions pass is claimed.
 
-## Publication decision
+## Public release
 
-Keep private until the [security/publication gates](security-review.md) are complete. No confirmed key was found, but inherited author identities, historical opaque test references and image permissions need owner review. Public visibility must not be changed automatically.
+Use the [release audit](release-audit.md), [security gates](security-review.md) and [asset inventory](assets-and-licensing.md). Resolve raw-blueprint credential exposure/rotation, author privacy, licence/asset rights and final artifacts before explicitly approving visibility change. Do not publish automatically.
 
-## Portfolio use
+The earlier preferred separate repository name was blocked by `createRepository` permission. The current request uses the existing GlowLab repository, so no separate repository is required or created here.
 
-[The case study](portfolio-case-study.md) is ready as factual Markdown. It describes the existing Gemini tool architecture and tested simulated-commerce flow, with Make/email and planned Groq fallback clearly bounded.
+## Portfolio
 
-The separate portfolio website, https://fareedahadedayo.vercel.app/, was not modified. To publish there, adapt the Markdown into the portfolio's actual content structure, retain simulation/verification boundaries, replace the private source link only when appropriate and preview before production. No invented sales, response-speed, automation time-savings or customer-satisfaction statistics should be added.
+The [case study](portfolio-case-study.md) now covers the Groq-primary/Gemini-fallback implementation, real-provider evidence and the actual supplied Make blueprint with owner-tested delivery. The separate portfolio website was not modified. Preview any content adaptation there before production; do not invent commercial metrics or erase demo/testing boundaries.

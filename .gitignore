@@ -21,3 +21,11 @@ private-exports/
 *.pem
 *.key
 .cache/
+
+# Unreviewed Make exports must not be published accidentally.
+*.blueprint.json
+!automation/make/*.sanitized.blueprint.json
+*.db
+*.sqlite-journal
+__pycache__/
+*.py[cod]

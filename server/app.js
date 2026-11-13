@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import { signer as makeSigner } from "./security.js";
 import { AppError, parse, checkoutSchema, ticketSchema } from "./validation.js";
 import { publicProduct } from "./catalogue.js";
+import { publicPolicy } from "./policy-copy.js";
 import { respond } from "./lumi.js";
 import { redactSecrets } from "./secret-safety.js";
 import { executeTool } from "./tools.js";
@@ -122,6 +123,7 @@ export function createApp({
           ? "local-demo"
           : "supabase"
         : "unconfigured",
+      lumiConfigured: !!(env.GROQ_API_KEY || env.GEMINI_API_KEY),
       gemini: !!env.GEMINI_API_KEY,
       groq: !!env.GROQ_API_KEY,
       simulated: true,
@@ -166,7 +168,7 @@ export function createApp({
     });
   });
   app.get("/api/policies", async (_req, res) =>
-    res.json({ policies: await requireStore().policies() }),
+    res.json({ policies: (await requireStore().policies()).map(publicPolicy) }),
   );
   app.post(
     "/api/checkout",

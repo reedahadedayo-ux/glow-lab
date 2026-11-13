@@ -1,99 +1,96 @@
 # GlowLab — AI-Assisted Skincare Commerce Platform
 
-A skincare storefront that connects product discovery, a conversational shopping assistant and private order records. GlowLab keeps the shopping interface simple while the server handles catalogue access, prices, guest identity and order persistence.
+A demo skincare ecommerce platform connecting product discovery, Lumi's tool-assisted shopping guidance, private order storage and a Make order-acknowledgement workflow.
 
-**[Live storefront](https://glow-lab-puce.vercel.app/)** · [Architecture](docs/architecture.md) · [Workflows](docs/workflows.md) · [Setup](docs/setup.md) · [Testing](docs/testing.md) · [Portfolio case study](docs/portfolio-case-study.md)
+**[Live demo](https://glow-lab-puce.vercel.app/)** · [Architecture](docs/architecture.md) · [Setup](docs/setup.md) · [Testing](docs/testing.md) · [Make workflow](docs/workflows.md) · [Portfolio case study](docs/portfolio-case-study.md)
 
-> **Demonstration, not a trading store.** Payments are simulated; no products are dispatched. Use fictional customer details. A saved `paid` status with `payment_method=simulated` is not a real payment. This project is not certified production-ready.
+> **Demo, not a trading store.** Payments are simulated, no money is charged and no goods are dispatched. Use fictional customer details. This branch contains the Groq integration; it has not been merged to main or promoted to production. The live site may therefore run an earlier revision.
 
-![GlowLab catalogue showing the original twelve products and customer navigation](docs/images/catalogue-desktop.png)
+![GlowLab catalogue, twelve products and customer navigation](docs/images/catalogue-desktop.png)
 
-_Local browser-test capture, desktop viewport, 13 November 2026. Catalogue-only image: not evidence of live AI or email delivery._
+_Local desktop browser-test capture. No customer record, email or model response is pictured._
 
-## The problem and objective
+## Why GlowLab exists
 
-Skincare shoppers can struggle to compare products, understand a routine and find useful help without being overwhelmed. Store operators also need reliable order records before they can automate acknowledgement and support.
+Skincare shoppers need a clear way to compare products, ask questions and build a manageable routine. Operators need accurate private order records before they can automate useful follow-up.
 
-GlowLab explores both sides of that problem: a coherent customer journey and a backend that makes important actions verifiable. The objectives are to preserve catalogue facts, keep prices authoritative, protect customer records, give the assistant useful tools and distinguish a completed action from a suggestion or failed request.
+I built GlowLab to explore both sides: a coherent customer journey and a backend that makes important actions verifiable. The project focuses on catalogue-grounded guidance, server-authoritative prices, explicit customer approvals, transactional order storage and clearly documented automation boundaries—not invented clinical benefits or sales results.
 
-## What is actually implemented?
+## Features and current evidence
 
-| Capability                                                       | Status and evidence                                                                                                                                                                                                                               |
-| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Nine-page responsive storefront                                  | Implemented; desktop, tablet and mobile browser checks pass.                                                                                                                                                                                      |
-| Catalogue search, categories and product detail links            | Implemented; 12 original product IDs, prices and images preserved. Missing verified specifications are labelled rather than invented.                                                                                                             |
-| Persistent cart and checkout                                     | Implemented; localStorage cart, quantity controls, server-priced checkout and idempotent saves. Browser persistence tested locally.                                                                                                               |
-| Supabase orders and item snapshots                               | Implemented; private schema and transactional RPC. Current production read-only catalogue readiness verified; no new production checkout write performed for this audit.                                                                          |
-| Lumi AI shopping assistant                                       | **Gemini-only in this revision**, using the official server-side SDK and five model-selected tools. Mock orchestration tests pass; current live generation is not re-certified. Earlier live calls encountered gateway failures and quota limits. |
-| Support requests                                                 | Implemented; direct form save or explicit approval of an AI-prepared draft. Not proof of a staffed human support desk.                                                                                                                            |
-| Make order acknowledgement                                       | **Partially verified externally:** two enabled Supabase order INSERT HTTP hooks point to Make destinations. Scenario modules, email and status updates are unverified. No Make export or mail integration exists in this source tree.             |
-| Groq primary → Gemini fallback                                   | Requested future work, **not implemented**. A configured Groq key alone does not connect a provider.                                                                                                                                              |
-| Add to Cart → automatic checkout                                 | Requested future work, **not implemented**. Current flow is Add to cart → Cart → Checkout; checkout does not contain cart-edit controls.                                                                                                          |
-| Real payment, fulfilment, seller dashboard, marketing automation | Not implemented or claimed. No Klaviyo integration found in source.                                                                                                                                                                               |
+| Capability                           | Implementation and verification                                                                                                                                                                                                                                              |
+| ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Responsive storefront                | Nine pages, twelve preserved products, search/category filters and product details; desktop/tablet/mobile browser journeys tested. Unknown ingredients, size and directions are labelled, not invented.                                                                      |
+| Cart and simulated checkout          | Persistent cart; quantity/removal; validated checkout; authoritative pricing; atomic order/item snapshots and owner-scoped idempotent retries. Real local API/storage/browser tests pass.                                                                                    |
+| Private Supabase records             | Six RLS-enabled commerce tables, backend-only service role and guest-session-scoped order lookup. Live schema/grants inspected read-only; no fresh production order was created.                                                                                             |
+| Lumi: Groq primary → Gemini fallback | Implemented and **real-provider tested on a Vercel preview-build host**. Groq `openai/gpt-oss-20b` generated replies and selected a catalogue tool. An injected Groq outage produced a real Gemini `gemini-3.1-flash-lite` response. [Evidence and limits](docs/testing.md). |
+| Model-directed tools                 | Catalogue search, basic routine selection, published policy, private order lookup and two-phase support requests. Same validation, ownership and approval boundaries for both providers.                                                                                     |
+| Make acknowledgement                 | **Owner reports a successful email test.** Supplied v1 blueprint inspected: webhook → claim → retrieve order/items → aggregate lines → Gmail → status update. [Actual modules, safeguards and reconciliation findings](docs/workflows.md).                                   |
+| Support                              | Customer form saves a request; AI-prepared ticket requires explicit review/submit. A saved ticket is not proof of a staffed response or email reply.                                                                                                                         |
 
-## System at a glance
+## System architecture
 
 ```mermaid
 flowchart LR
-    Shopper[Customer browser] --> UI[HTML / CSS / JavaScript]
-    UI -->|same-origin /api| API[Express on Vercel]
-    API -->|private service-role adapter| DB[(Supabase PostgreSQL)]
-    API --> Lumi[Lumi orchestration]
-    Lumi <--> Gemini[Google Gemini]
-    Lumi --> Tools[Validated catalogue / routine / policy / order / support tools]
+    Customer[Customer browser] --> UI[HTML / CSS / JavaScript storefront]
+    UI -->|same-origin /api| API[Express API on Vercel]
+    API --> DB[(Private Supabase PostgreSQL)]
+    API --> Lumi[Lumi: shared history, policy and tools]
+    Lumi --> Groq[Groq primary]
+    Groq -. provider failure .-> Gemini[Gemini fallback]
+    Lumi --> Tools[Validated backend tools]
     Tools --> DB
-    DB -. two configured INSERT webhooks .-> Make[Make scenarios: not inspected]
-    Make -. downstream steps unverified .-> Mail[Customer acknowledgement / status update]
+    DB -->|orders INSERT hooks| Make[Make acknowledgement scenario]
+    Make --> Gmail[Gmail acknowledgement]
 ```
 
-Solid lines describe implemented application responsibilities, not a claim that every external service is currently available. Dashed lines describe an externally configured, only partially verified automation boundary. [Detailed architecture and API](docs/architecture.md).
+The Make line describes the inspected blueprint and owner-reported test, not a fresh audit-triggered email. Its notification RPC/table and some mappings need reconciliation with current live metadata. **Two different Make destinations** are configured on order INSERT; neither was modified. [Workflow evidence](docs/workflows.md).
 
-## Technology stack
+### Stack
 
-| Technology                            | Responsibility                                                                                                |
-| ------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| HTML, CSS, vanilla browser JavaScript | Storefront, accessible controls, product modal, cart, checkout and chat UI. No frontend framework rebuild.    |
-| Node.js + Express 5                   | Shared local/Vercel API, validation, origin checks, guest ownership, errors and static allowlisting.          |
-| Zod, Helmet, express-rate-limit       | Request schemas, response headers and per-process abuse controls.                                             |
-| Supabase JavaScript SDK + PostgreSQL  | Server-only data access, transactional order creation, item snapshots and private support records.            |
-| Google Gen AI SDK                     | Gemini requests and function calling; secrets stay server-side.                                               |
-| SQLite                                | Durable **development-only** adapter. Explicitly rejected on Vercel/in production.                            |
-| Node test runner + PGlite             | API, security, schema and regression tests. PGlite is local PostgreSQL-compatible testing, not live Supabase. |
-| Playwright + packaged Chromium        | Local browser journeys across desktop and touch widths. Gemini transport is mocked only in tests.             |
-| Vercel                                | Allowlisted static build and a serverless Express entrypoint.                                                 |
-| Make                                  | Externally configured order hooks; downstream scenario behaviour awaits verification.                         |
+- **Frontend:** HTML, CSS and vanilla JavaScript; original cream/sage/charcoal identity retained.
+- **Backend:** Node.js 22.x, Express 5, Zod, Helmet and request limits.
+- **Database:** Supabase PostgreSQL + private service-role adapter; SQLite only for explicit local development.
+- **AI:** Server-side Groq REST adapter; official Google Gen AI SDK for Gemini fallback. No provider keys or SDK clients in the browser.
+- **Automation:** Supabase database HTTP hooks and externally managed Make/Gmail scenario.
+- **Verification:** Node test runner, PGlite, Playwright and packaged Chromium. Dedicated mocked-provider tests are clearly separate from live probes.
+- **Deployment:** Vercel static asset allowlist plus one Express API entrypoint.
 
-## How Lumi works
+## Lumi: compatible providers, accountable tools
 
-1. The browser sends a message and optional signed conversation token to **one** endpoint: `POST /api/lumi`.
-2. The backend verifies session-bound history and supplies the dedicated system instructions and function declarations to Gemini.
-3. The model chooses whether a tool is needed. The backend validates the arguments and enforces customer ownership independently of the model.
-4. Tool results return to Gemini before the final answer. Product suggestions are tied to catalogue IDs, not invented catalogue entries.
-5. The customer explicitly selects cart additions. Support drafts must be reviewed and submitted before a ticket exists.
+1. Browser sends a message and optional signed history to `POST /api/lumi`.
+2. Server verifies guest ownership/history, then sends the shared policy and five tool declarations to **Groq**.
+3. Backend validates and executes model-selected tools. Real tool results return to the model before its final answer. Suggestions are not cart mutations.
+4. Provider/network/configuration/model/rate errors switch generation to **Gemini**, preserving history and completed tool results. After switching, the request stays on Gemini.
+5. Identical tool calls are deduplicated within that request; generation retry/failover does not replay completed actions. Explicit customer approval still governs cart additions and support submission.
+6. If both providers fail, Lumi returns a friendly error, not a canned successful answer. The frontend remains provider-agnostic.
 
-The five tools are `search_products`, `build_skincare_routine`, `get_store_policy`, `lookup_order` and `create_support_ticket`. Routine selection is implemented server-side from available catalogue records and budget; it is not a clinical assessment or unrestricted semantic personalisation. Conversation history is signed and bounded, **not encrypted**. Lumi must not diagnose, invent policies or expose credentials. [Tool boundaries and limitations](docs/architecture.md#lumi-and-tool-boundaries).
+Five tools: `search_products`, `build_skincare_routine`, `get_store_policy`, `lookup_order`, `create_support_ticket`. Routine selection uses catalogue availability, budget and metadata—not a diagnosis or clinical suitability guarantee. Signed history protects integrity but is **not encrypted**. Messages and relevant context may reach Groq and Google on fallback. Do not submit sensitive medical/payment information.
 
-Transient Gemini generation errors can be retried once per round, with a 40-second attempt cap and shared 90-second generation deadline; tools are not replayed by that retry. Authentication, model/request and quota errors are not retried. There is no second-provider fallback in the current code.
+Groq attempts are capped at 20 seconds. Gemini generation retains one bounded transient retry; all rounds share a 90-second generation deadline. Tool I/O/serverless limits remain separate constraints. Only allowlisted provider/outcome/status diagnostics are logged. [Provider adapter details](docs/architecture.md#lumi-and-tool-boundaries).
 
-## Shopping and order data
+## Checkout and order storage
 
-- Cart entries are product IDs and integer quantities, persisted in the browser. Add to Cart does not create an order.
-- Checkout validates customer fields and quantities; client prices, totals and payment flags are rejected.
-- `create_demo_order` loads authoritative product prices, verifies availability, snapshots line items and saves order/items atomically. Tracked stock is decremented only within the transaction.
-- An owner-scoped idempotency key plus request fingerprint prevents duplicate order creation on retries; changing the payload under the same key conflicts.
-- Initial records distinguish `payment_status=paid`, `payment_method=simulated`, `order_status=confirmed` and `fulfillment_status=unfulfilled`.
-- Customer/delivery details are stored in `glowlab.orders.customer`; queryable projections are generated from that snapshot. Purchased items live in `glowlab.order_items`. There is no separate customer-account table or customer login.
-- Order lookup requires the originating browser session, reference and checkout email. Email alone does not unlock an order. The service-role credential is never sent to the browser.
+- Add to Cart changes only browser storage; the current journey is **Cart → Checkout**, not immediate checkout navigation.
+- Server rejects client prices/totals/payment flags and loads authoritative catalogue records.
+- `create_demo_order` saves an order, item snapshots and tracked stock change atomically. Identical owner-bound retry keys return the saved order; changed payloads conflict.
+- Customer/delivery JSON and generated queryable projections live on `glowlab.orders`; purchased names/prices/quantities live in `glowlab.order_items`.
+- `payment_status=paid` plus `payment_method=simulated` means simulation complete, not a real charge. `order_status` and `fulfillment_status` remain independent.
+- Order lookup requires the originating guest browser, reference and email. No customer account, seller dashboard or email-only recovery is implied.
 
-## Order acknowledgement automation: evidence, not a promise
+## Make workflow and sanitised blueprint
 
-The intended boundary is **order INSERT → Make webhook → retrieve committed order/items → generate/send acknowledgement → update notification state**.
+[Module-by-module review](docs/workflows.md) · [Sanitised import template](automation/make/README.md)
 
-Only the first boundary is verified in the live database: **two enabled AFTER INSERT HTTP hooks to Make**, neither configured for UPDATE or DELETE. Two hooks may cause duplicate processing; actual delivery was not tested. The inspected order schema has **no notification-status columns**. No Make blueprint, execution history, mail content or provider receipt was available. Missing line items, email delivery/spam, retries and status-update completion are open checks—not fixes. [Step-by-step evidence and acceptance checklist](docs/workflows.md).
+The owner supplied the actual blueprint and reports successful order-email delivery. The reviewed scenario validates INSERT/orders events, calls a notification claim RPC, waits ten seconds, fetches order/items, iterates and aggregates product rows, sends Gmail, then updates notification status. Retry handlers are present at specific HTTP stages; Gmail has no connected error handler in this export.
+
+The audit also found differences requiring reconciliation: two distinct live webhook destinations, notification objects absent from inspected live metadata, and `item_name` versus stored `product_name`. These do not erase the owner's successful test, nor justify claiming universal retry/deduplication reliability. No production hook/schema/scenario was changed and no email was sent by the audit.
+
+The raw upload contained a privileged credential. Only a sanitised, unbound JSON template is included; private configuration, account bindings and captured metadata were removed. Actual import in Make has not been executed. See the [credential and release gates](docs/security-review.md).
 
 ## Run locally
 
-Tested here with Node 22.22.3 and npm. Use Node 22+; browser tests require Linux x64 with the included Chromium setup.
+Use **Node 22.x** and npm. The repository is currently private and requires authorised GitHub access.
 
 ```sh
 git clone https://github.com/reedahadedayo-ux/glow-lab.git
@@ -102,77 +99,73 @@ npm ci
 cp .env.example .env
 ```
 
-For a development preview, set `DATA_BACKEND=local` in your ignored `.env`, optionally set `GEMINI_API_KEY` and an account-supported `GEMINI_MODEL`, then run:
+Set `DATA_BACKEND=local` in the ignored `.env`; optionally configure the AI variables privately, then:
 
 ```sh
 npm run dev
 # http://localhost:3000
 ```
 
-No AI key means Lumi fails honestly; it does not substitute a scripted answer. Local SQLite data lives in ignored `.data/`. Do not use a generic static server for checkout or expose the repository root as public assets. [Full local/Supabase/deployment instructions](docs/setup.md).
+No provider key means honest AI unavailability, not scripted answers. Local SQLite lives in ignored `.data/` and is rejected on Vercel/in production. Browser tests require the bundled Linux x64 Chromium setup. Do not expose the repo root with a generic static server. [Complete setup](docs/setup.md).
 
-### Environment variable names
+### Environment names
 
-`.env.example` intentionally contains **blank values only**. Fill secrets in a private local file or Vercel settings, never in Git.
+`.env.example` contains **blank assignments only**. Secrets belong in private server settings.
 
-| Variable                                                                              | Purpose                                                                                                                        |
-| ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `DATA_BACKEND`                                                                        | `local` for development; `supabase` for deployment.                                                                            |
-| `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`                                           | Private server adapter connection. Never a browser service-role key.                                                           |
-| `SUPABASE_DB_SCHEMA`                                                                  | Commerce schema, normally `glowlab`.                                                                                           |
-| `SESSION_SECRET`                                                                      | Stable random secret, at least 32 characters; changing it invalidates session ownership/history.                               |
-| `GEMINI_API_KEY`, `GEMINI_MODEL`                                                      | Server-side AI credential and a model currently enabled for the account. Do not assume the source fallback model is available. |
-| `APP_ORIGIN`, `PORT`                                                                  | Optional canonical origin and local port.                                                                                      |
-| `GLOWLAB_VERIFY_LIVE`, `GLOWLAB_PROBE_DEPLOYED_LUMI`, `GLOWLAB_PROBE_GEMINI_RECOVERY` | Optional preview-only diagnostics. Leave unset unless deliberately performing those checks.                                    |
+| Name                                                              | Purpose                                                                                            |
+| ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `DATA_BACKEND`                                                    | Explicit `local` development or `supabase` central persistence.                                    |
+| `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_DB_SCHEMA` | Private server adapter; schema normally `glowlab`. No service-role key in the browser.             |
+| `SESSION_SECRET`                                                  | Stable random secret of at least 32 characters. Rotation invalidates guest ownership/capabilities. |
+| `GROQ_API_KEY`, `GROQ_MODEL`                                      | Primary provider; default model `openai/gpt-oss-20b`.                                              |
+| `GEMINI_API_KEY`, `GEMINI_MODEL`                                  | Fallback provider; default `gemini-3.1-flash-lite`. Account availability still matters.            |
+| `PORT`, `APP_ORIGIN`                                              | Optional local port/canonical mutation origin.                                                     |
+| `GLOWLAB_VERIFY_PROVIDERS`                                        | Explicit preview-build-only read-only real-provider probe. Disabled normally.                      |
+| Other `GLOWLAB_*` diagnostics                                     | Existing opt-in probes; review [setup](docs/setup.md) before enabling.                             |
 
-No Make/Klaviyo/Groq environment variable is consumed by the current application. External database webhooks are managed separately. Do not export their private destinations into documentation.
+Make connections/webhooks are configured externally, not consumed through application webhook variables. Existing private Vercel Make variables were preserved. No Klaviyo implementation was found.
 
-## Deployment
-
-The existing live storefront is hosted on Vercel from the existing `glow-lab` repository. `vercel.json` builds only root HTML, CSS, browser JS and images into ignored `public/`. `/api/*` forwards to `api/index.js`; legacy storefront paths redirect. Production uses Supabase, not SQLite; secrets are backend environment variables. No migrations run automatically.
-
-This documentation preparation does **not** change Vercel project linkage, redeploy production, modify webhook configuration or apply migrations. `engines.node >=22` can select a newer Vercel major; pin and test an intended runtime before a future hardening release.
-
-## Tests and verification — 13 November 2026
+## Verification
 
 ```sh
-npm test                 # 40 tests passed
-npm run test:browser     # 56 browser groups passed; local SQLite + mocked Gemini
-npm run build            # passed
-npm run format:check     # passed; formatting, not a separate JavaScript linter
-npm audit                # 0 reported vulnerabilities at this check
-python3 scripts/audit-publication.py --history
+npm test                         # 50 automated tests
+npm run test:browser              # 56 storefront groups; real local SQLite, mocked Gemini
+npm run test:browser:providers    # 3 primary/fallback/error frontend scenarios; mocked providers
+python3 -m unittest discover -s tests -p '*_test.py'  # 4 publication-tool tests
+npm run build
+npm run format:check              # formatting, not a separate JS linter
+npm audit
+python3 scripts/check-doc-links.py
+python3 scripts/audit-publication.py --all-refs
 ```
 
-An inactive CI template is included at [`docs/ci-workflow.example.yml`](docs/ci-workflow.example.yml); GitHub denied workflow creation with the current connection. Owner activation requires workflow permission.
+Real Groq and Gemini fallback responses were verified separately in protected Vercel preview-build probes, including an HTTP contract check. Local browser tests verify response rendering with mocked transports. They do not claim a full live-provider browser journey or a new production order/email test. [Exact evidence](docs/testing.md) · [Sanitised probe results](docs/evidence/provider-probes.json).
 
-Read-only production `/api/ready` returned Supabase readiness with 12 catalogue records. This is **not** an order-write, Gemini-response or email-delivery test. No fresh production orders/tickets were created. [Exact evidence, test layers and remaining gates](docs/testing.md).
+## Deployment and known limits
 
-## Known limitations and next steps
+`vercel.json` builds only public HTML/CSS/browser JS/images, routes `/api/*` to `api/index.js`, retains legacy redirects and configures headers. Production requires Supabase and stable secrets; migrations are not run automatically. Node is pinned to the locally tested 22.x major instead of a floating `>=22` range.
 
-- Make scenario access/export, duplicate-hook review, complete line-item mapping, notification idempotency and delivery/status verification remain open.
-- Live Gemini has previously encountered gateway/quota failures. Current health must be tested separately; a configuration flag is not proof of generation.
-- Groq priority/fallback and immediate Add to Cart checkout navigation remain unimplemented requirements.
-- Product-specific ingredients, volume, usage and benefits lack authoritative verification. Brand names/images are not proof of suitability or authenticity.
-- Guest recovery across devices, distributed rate limiting, encrypted/server-side conversation storage and deletion/retention controls need further design.
-- No real payments, shipping, refunds, email replies or staffed escalation service is claimed.
-- Confirm image redistribution rights and choose a code licence before public presentation. [Publication/security review](docs/security-review.md) and [notice](NOTICE.md).
+This branch remains private and unmerged. No production deployment was promoted. Before an approved release, reconcile the existing production `GEMINI_MODEL` override with the tested fallback model; final secret scopes and preview setup are explained in [setup](docs/setup.md).
 
-## Repository and documentation
+Remaining limitations include Make configuration reconciliation/failure tests, verified product specifications, guest recovery/retention controls, per-process rather than distributed rate limiting, and the planned direct-checkout flow. No real payments, shipping, monetary refunds, marketing automation, clinical verification or staffed escalation SLA is claimed.
 
-The source repository remains **private** at `reedahadedayo-ux/glow-lab`. The preferred separate name `glowlab-ecommerce-platform` could not be created: the current GitHub integration denied `createRepository`. No unrelated repository was changed or overwritten. See [manual handoff](docs/github-handoff.md) before moving or publishing anything.
+## Public-release review
+
+**Prepared for owner review, not automatically cleared for publication.** [Release audit and file inventory](docs/release-audit.md) · [Security review](docs/security-review.md) · [Asset rights inventory](docs/assets-and-licensing.md) · [Notice](NOTICE.md).
+
+No confirmed credential was found in the reviewed Git tree/history; the private raw blueprint was never committed. Author metadata, historic test identifiers, asset permissions, licence choice and credential-rotation decisions still need owner review. An inactive CI template is provided because the GitHub integration lacks workflow-write permission. Repository visibility and main remain unchanged.
 
 ```text
-api/                   Vercel handler
-server/                Express, Gemini, tools, adapters and security
-js/ css/ images/       Maintained browser assets
-*.html                 Nine customer-facing pages
-supabase/              Reviewed schema, migrations, seed and rollback guidance
-scripts/               Build, guarded diagnostics and publication audit
-tests/                API, storage, schema, browser and security tests
-docs/                 Current architecture, setup, workflows, testing and case study
-docs/archive/         Dated historical implementation records
-glowlab-skincare/     Legacy redirect pages/assets; not the maintained storefront
+api/                    Vercel API entrypoint
+server/                 Express, provider adapters, tools, storage and security
+js/ css/ images/        Maintained storefront assets
+*.html                  Nine customer-facing pages
+supabase/               Reviewed migrations/seed/rollback guidance
+scripts/ tests/         Build, diagnostics, security and regression helpers
+automation/make/        Sanitised supplied blueprint and rebinding guide
+docs/                   Current architecture, evidence, setup, case study and audit
+docs/archive/           Earlier implementation records, explicitly historical
+glowlab-skincare/       Preserved legacy redirect pages/assets
 ```
 
-The 12 older audit reports are archived rather than erased. Their earlier deployment/provider claims are historical, not current readiness guarantees. Git ancestry is preserved. The case study is prepared as Markdown; no changes have been made to the separate portfolio website.
+The separate portfolio website was not changed. The [case study](docs/portfolio-case-study.md) is ready to adapt without invented performance, revenue or customer outcomes.

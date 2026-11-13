@@ -2,23 +2,23 @@
 
 [README](../README.md) · [Workflows](workflows.md) · [Setup](setup.md) · [Testing](testing.md)
 
-**Snapshot: 13 November 2026.** This describes the checked-out implementation, not the previously requested Groq migration. See [workflow evidence](workflows.md) for database changes configured outside Git.
+**Snapshot: 13 November 2026.** This describes the Groq-primary/Gemini-fallback implementation on the prepared branch, not the earlier Gemini-only production revision. See [workflow evidence](workflows.md) for database changes configured outside Git.
 
 ## Components and responsibilities
 
-| Component          | Source                                                      | Responsibility                                                                                                                         |
-| ------------------ | ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| Customer pages     | Root HTML, `css/style.css`                                  | Home, Products, About, FAQ, Contact, Cart, Checkout, Confirmation and Policies.                                                        |
-| Browser controller | `js/script.js`                                              | Same-origin API requests, catalogue filtering, modal, persisted cart, checkout and Lumi panel.                                         |
-| Copy presentation  | `js/storefront-copy.js`                                     | Only exact known legacy descriptions/policies are translated for display. Future configured content passes through. No database write. |
-| Vercel entrypoint  | `api/index.js`                                              | Lazily creates/caches the same Express application used locally. Startup failure returns a configuration error.                        |
-| Runtime            | `server/runtime.js`                                         | Selects Supabase or explicit development-only SQLite. Production refuses local mode.                                                   |
-| API/security       | `server/app.js`, `security.js`, `validation.js`             | Origin/JSON/body checks, validation, session ownership, signed capabilities, rate limits and safe error responses.                     |
-| Data adapters      | `supabase-store.js`, `local-store.js`, `database-errors.js` | Same application operations with different storage implementations; sanitized integration failures.                                    |
-| AI                 | `lumi.js`, `lumi-system-prompt.js`, `gemini-request.js`     | Official Gemini SDK, conversation context, tool loop, generation-only transient recovery.                                              |
-| Tools              | `server/tools.js`                                           | Validated catalogue/policy reads, routine selection, secure order lookup, two-phase ticket action.                                     |
-| Deployment         | `vercel.json`, `scripts/build-public.js`                    | Public asset allowlist, API rewrite, security headers, clean URLs and old-path redirects.                                              |
-| External workflow  | Supabase configuration, not source code                     | Two enabled order INSERT webhook triggers to Make. Downstream scenario unverified.                                                     |
+| Component          | Source                                                         | Responsibility                                                                                                                         |
+| ------------------ | -------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| Customer pages     | Root HTML, `css/style.css`                                     | Home, Products, About, FAQ, Contact, Cart, Checkout, Confirmation and Policies.                                                        |
+| Browser controller | `js/script.js`                                                 | Same-origin API requests, catalogue filtering, modal, persisted cart, checkout and Lumi panel.                                         |
+| Copy presentation  | `js/storefront-copy.js`                                        | Only exact known legacy descriptions/policies are translated for display. Future configured content passes through. No database write. |
+| Vercel entrypoint  | `api/index.js`                                                 | Lazily creates/caches the same Express application used locally. Startup failure returns a configuration error.                        |
+| Runtime            | `server/runtime.js`                                            | Selects Supabase or explicit development-only SQLite. Production refuses local mode.                                                   |
+| API/security       | `server/app.js`, `security.js`, `validation.js`                | Origin/JSON/body checks, validation, session ownership, signed capabilities, rate limits and safe error responses.                     |
+| Data adapters      | `supabase-store.js`, `local-store.js`, `database-errors.js`    | Same application operations with different storage implementations; sanitized integration failures.                                    |
+| AI                 | `lumi.js`, `groq.js`, `llm-router.js`, `lumi-system-prompt.js` | Groq REST primary, official Gemini SDK fallback, shared history/tools and generation-only recovery.                                    |
+| Tools              | `server/tools.js`                                              | Validated catalogue/policy reads, routine selection, secure order lookup, two-phase ticket action.                                     |
+| Deployment         | `vercel.json`, `scripts/build-public.js`                       | Public asset allowlist, API rewrite, security headers, clean URLs and old-path redirects.                                              |
+| External workflow  | Supabase configuration, not source code                        | Two enabled order INSERT webhook triggers to Make. Downstream scenario unverified.                                                     |
 
 ## Trust boundaries
 
@@ -43,7 +43,8 @@ flowchart TB
     Guard --> Owner --> Routes
     Routes --> Adapter
     Routes --> AI
-    AI <--> Gemini[Google Gemini]
+    AI <--> Groq[Groq primary]
+    AI -. provider failure .-> Gemini[Google Gemini fallback]
     AI --> Tools --> Adapter
     Adapter --> DB[(Private glowlab schema)]
     DB -. configured INSERT hooks .-> Make[Make: external boundary]
@@ -77,7 +78,7 @@ erDiagram
 
 The real SQL definitions, constraints and privileges are in [migrations](../supabase/migrations/). There are six commerce tables. No separate `customers` table is required: the purchase-time customer/delivery snapshot belongs to the order. Generated columns expose name/email/phone/address/city/instructions from that JSON without competing copies. `shipping_fee` is derived from stored `delivery_fee`.
 
-Anonymous/authenticated roles have no private commerce access in the reviewed migration contract; RLS is enabled. Live grants were not independently re-certified in this audit. The migrations do not define notification state, an outbox or the two externally configured HTTP hooks. That is explicit **configuration drift**, not an invitation to rerun SQL.
+Anonymous/authenticated roles have no private commerce access in the reviewed migration contract; RLS is enabled. Read-only live inspection found all six commerce tables RLS-enabled, no anon/authenticated commerce table grants, and no execute privilege for those roles on the two commerce RPCs. Both RPCs are invoker-security with an empty search path; service-role execution is allowed. The migrations do not define notification state, an outbox or the two externally configured HTTP hooks. The supplied Make blueprint references a separate notification table/RPC not present in inspected live metadata. This is a reconciliation issue, not permission to rerun SQL. The owner reports a successful email test; see the [actual module review](workflows.md).
 
 ## Checkout transaction and retry behaviour
 
@@ -111,9 +112,15 @@ This prevents duplicate **orders**, not duplicate **emails**. External hooks, we
 
 ## Lumi and tool boundaries
 
-Current provider: **Google Gemini via `@google/genai`**. Source default is `gemini-2.5-flash`; earlier deployment evidence used an environment override `gemini-3.5-flash`. Neither is a guarantee of current account availability. There is no Groq client, Groq model selection or provider fallback in this revision.
+Current primary: **Groq `openai/gpt-oss-20b`**, using a server-only REST adapter. Chosen as a currently documented production model supporting function calling; automatic local tool selection is used, with parallel tool requests disabled. No Groq built-in web/code tools are enabled. Override with `GROQ_MODEL` only after account verification. [Groq model documentation](https://console.groq.com/docs/models) and [tool contract](https://console.groq.com/docs/tool-use/overview) were inspected during selection.
 
-The backend sends the dedicated system instruction, bounded history, five tool declarations, temperature 0.2 and output limit 1400 to `generateContent`. Up to six model rounds are allowed, with at most five tool calls in a round. Whole history turns are trimmed to 24 entries / roughly 48,000 JSON characters where possible and sealed with a two-hour expiry.
+Fallback: **Gemini `gemini-3.1-flash-lite`** through the official SDK, overridable with `GEMINI_MODEL`. The old default returned a real 404 during the first probe; the new default produced a real fallback answer. Production's older environment override has not been silently changed. Both live evidence and limits are in [testing](testing.md).
+
+`groq.js` converts the existing canonical Gemini-shaped history into OpenAI-compatible system/user/assistant/tool messages. It lowercases tool schema types, creates stable call IDs for legacy history and validates all returned tool argument JSON before any execution. Malformed/empty/truncated Groq output fails over instead of partially executing a response. It never forwards raw provider error bodies.
+
+`llm-router.js` tries Groq first with a 20-second attempt cap. Any provider/configuration/model/rate/network failure switches to Gemini using the **same history and completed tool responses**; subsequent rounds stay on Gemini in that request. User validation/signature/ownership failures occur outside the router and do not trigger another provider call. Per-request identical name/argument tool calls are memoised, so an identical call after failover does not execute twice. This is not notification-email idempotency or a persistent cache across user turns.
+
+The backend supplies the same dedicated system instruction, bounded history and five tool declarations to either provider. Gemini uses temperature 0.2/output limit 1400; Groq uses temperature 0.2 and max completion tokens 3000, allowing room for its reasoning budget. Provider payloads are normalised to the same orchestration response. Up to six model rounds are allowed, with at most five tool calls in a round. Whole history turns are trimmed to 24 entries / roughly 48,000 JSON characters where possible and sealed with a two-hour expiry.
 
 | Tool                     | Actual behaviour                                                                                                             | Important limit                                                                                                          |
 | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
@@ -125,7 +132,7 @@ The backend sends the dedicated system instruction, bounded history, five tool d
 
 Customer selections, not AI text, add products to cart. The support confirmation route validates owner/history/token and uses the same server tool with verified approval context. Unrecognized tools fail rather than run arbitrary functions.
 
-`generateWithRecovery` retries model generation at most once for transient 502/503/504, abort/timeout or specific network failure. Per-attempt cap is 40 seconds, with a shared 90-second generation deadline; validation/auth/model/quota failures are not retried. Tool execution stays outside this retry, preventing a generation retry from replaying a tool. Tool I/O time and serverless limits still require monitoring. There is no fabricated answer when generation fails.
+`generateWithRecovery` retries model generation at most once for transient 502/503/504, abort/timeout or specific network failure. Per-attempt cap is 40 seconds, with a shared 90-second generation deadline; validation/auth/model/quota failures are not retried. Tool execution stays outside this retry, preventing a generation retry from replaying a tool. Tool I/O time and serverless limits still require monitoring. There is no fabricated answer when both providers fail. Allowlisted monitoring records provider/outcome/status only, not prompts, raw errors or credentials.
 
 ## API contract
 
@@ -147,6 +154,6 @@ Typical errors: 400 validation; 403 ownership/origin; 404 unknown or unverifiabl
 
 ## Deployment and non-goals
 
-The build copies only public HTML/CSS/JS/images. Express also allowlists served paths; source, migrations and `.env` are not public assets. Vercel rewrites API traffic to one shared handler, retains clean URLs and redirects legacy paths. The Node engine range is broad; record/pin a tested major before a future runtime change.
+The build copies only public HTML/CSS/JS/images. Express also allowlists served paths; source, migrations and `.env` are not public assets. Vercel rewrites API traffic to one shared handler, retains clean URLs and redirects legacy paths. Node is now pinned to the locally tested 22.x major.
 
-No checkout/order migration, production environment change, Groq migration, real charge, mail service or Make scenario change was performed by the documentation preparation. The separate portfolio website is not part of this checkout.
+No checkout/order migration, production data change, real charge, mail send or Make scenario/trigger change was performed. The existing Groq secret was temporarily allowed into protected preview with owner approval for live tests, then restored to production-only scope. The separate portfolio website is not part of this checkout.

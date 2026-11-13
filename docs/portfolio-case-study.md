@@ -1,114 +1,97 @@
 # GlowLab — AI-Assisted Skincare Commerce Platform
 
-**A skincare shopping experience combining product discovery, AI-powered customer assistance and a foundation for automated order operations.**
+**A demo skincare shopping experience combining product discovery, tool-assisted AI guidance, private order records and an order-acknowledgement automation.**
 
-[Live demonstration](https://glow-lab-puce.vercel.app/) · [Source repository — currently private](https://github.com/reedahadedayo-ux/glow-lab) · [Technical architecture](architecture.md) · [Verification](testing.md)
+[Live demo](https://glow-lab-puce.vercel.app/) · [Source — private until review](https://github.com/reedahadedayo-ux/glow-lab/tree/arena/7e7ec798-glow-lab) · [Architecture](architecture.md) · [Evidence](testing.md)
 
-> Portfolio-use copy, prepared 13 November 2026. Payments are simulated and no products are dispatched. The Make order-notification boundary is configured but downstream email operation is not yet verified. This is an engineering demonstration, not evidence of live sales, customer results or a production-ready retail business.
+> Prepared 13 November 2026. Payments are simulated; no money is charged and no goods are dispatched. This prepared branch has not been merged or promoted, so the public live site may run an earlier revision. No sales, customer-satisfaction or time-saving metrics are claimed.
 
 ![GlowLab catalogue and customer navigation](images/catalogue-desktop.png)
 
-_Local test capture, desktop viewport; no customer record or AI response is pictured._
+_Actual local browser-test capture; catalogue-only, no customer record or AI response._
 
 ## The problem
 
-A skincare store has two different jobs to do well. Customers need a clear way to compare products and ask questions without being pushed into a complicated routine. Behind that interface, order information needs to be accurate and private before it can feed useful operations.
+A skincare store has two jobs: help a customer make sense of products, and retain accurate order information for follow-up. A polished interface alone does not solve private recordkeeping; an AI chat bubble alone does not make recommendations trustworthy.
 
-GlowLab brings those jobs together. The aim was not to put an AI chat bubble on a static catalogue. It was to connect shopping guidance to the same product and order data the storefront uses—and to make the boundaries visible when an action has not actually completed.
+I built GlowLab to connect these responsibilities. The goal was a coherent customer journey backed by verifiable actions: catalogue-grounded guidance, authoritative pricing, explicit approval and stored order/item snapshots. Behind it, the acknowledgement workflow explores how commerce events can drive practical operations without making the storefront look like an automation dashboard.
 
-## The system I designed and built
+## Customer experience and system design
 
-The customer journey stays deliberately familiar: browse products, open details, add items to a persistent cart, review quantities, complete a simulated checkout and retrieve the saved confirmation. The cream, sage and charcoal identity carries through product discovery, checkout and support rather than turning the store into an automation dashboard.
+The cream, sage and charcoal identity carries through browsing, product details, cart, checkout and support. The customer can search/filter twelve original products, inspect the information available, adjust a persistent cart and save a simulated order. Where ingredient, size or usage details could not be verified, I label the gap instead of inventing confident product copy.
 
-Under that interface, a Node/Express backend owns price validation, guest-session identity and persistence. Supabase stores orders and purchased-item snapshots. Lumi, the AI shopping companion, can ask that backend for catalogue information and order status; it cannot simply claim that an order was found or a ticket was created.
-
-The maintained catalogue contains twelve products. IDs, prices and image relationships were preserved during the storefront refinement. Where ingredients, directions or size could not be verified, the interface says so instead of filling the gaps with confident marketing copy.
-
-## Technical architecture
+The maintained frontend uses HTML/CSS/vanilla JavaScript. A Node/Express API owns input validation, guest identity and data operations. Supabase stores private orders and purchased-item snapshots; Vercel hosts the allowlisted public assets and API entrypoint. SQLite gives local development/tests real persistence without pretending that it is production Supabase.
 
 ```mermaid
 flowchart LR
-    Customer[Customer] --> Store[HTML / CSS / JavaScript storefront]
-    Store --> API[Express API on Vercel]
-    API --> Orders[(Supabase: orders and item snapshots)]
-    API <--> Lumi[Lumi + Gemini function calling]
+    Shopper[Shopper] --> Store[Storefront]
+    Store --> API[Express on Vercel]
+    API --> DB[(Private Supabase data)]
+    API --> Lumi[Lumi: shared policy, history and tools]
+    Lumi --> Groq[Groq primary]
+    Groq -. failure .-> Gemini[Gemini fallback]
     Lumi --> Tools[Validated backend tools]
-    Tools --> Orders
-    Orders -. configured INSERT hooks .-> Make[Make: scenario evidence pending]
-    Make -. unverified .-> Acknowledgement[Email acknowledgement and notification state]
+    Tools --> DB
+    DB --> Make[Make acknowledgement]
+    Make --> Gmail[Gmail]
 ```
 
-The implementation uses vanilla frontend code, not a replacement framework. The same Express application runs locally and behind Vercel's API entrypoint. Local SQLite gives the test suite a real persistence layer; deployed mode requires Supabase and does not silently substitute a local database if configuration fails.
+The service-role and AI keys remain on the server. Customer order access is scoped to the guest browser that placed the order, reference and checkout email. Knowing another person's email is not enough to retrieve their order. This is a guest flow, not a full account/recovery system.
 
-The private service-role connection and AI key remain on the server. Customer order lookup is scoped to the browser session that placed the order plus its reference and checkout email. Knowing an email address is not enough to read another shopper's order.
+## Lumi: useful assistance with accountable actions
 
-## Lumi: assistance grounded in actual tools
+Lumi's primary model is now **Groq `openai/gpt-oss-20b`**. On provider, model, configuration, network or quota failure, generation switches to **Gemini `gemini-3.1-flash-lite`**. Both receive the same dedicated instructions and backend tool declarations; the browser uses one provider-agnostic endpoint.
 
-Lumi currently uses the official Google Gemini SDK with a dedicated server-side policy. The model can choose five functions:
+I kept one shared orchestration loop instead of rebuilding the assistant for each SDK. The Groq adapter translates the canonical history/tool format; the fallback retains completed tool results and stays selected for later rounds in that request. Identical tool calls are deduplicated within a request, while generation retries never replay completed tools.
 
-- Search the actual catalogue.
-- Build a basic routine from available products and a budget.
-- Read published store policies.
-- Look up a session-owned order.
-- Prepare a support request for explicit customer approval.
+The five functions search the real catalogue, build a basic budget-aware routine, retrieve published policy, look up a session-owned order and prepare a support request. The model chooses tools, but server validation and ownership decide what can run. Product suggestions do not mutate the cart. A support draft requires customer review/submit before a saved ticket ID establishes success.
 
-The backend validates arguments and supplies real tool results before the assistant writes its final answer. Product selections stay under the customer's control. A support draft is shown for review; it is not reported as a saved ticket until the customer submits it and the database returns success.
+That separation is important: conversational text is not a transaction. Routine selection is a shopping aid using catalogue metadata—not a clinical diagnosis, ingredient certification or medical suitability guarantee. Signed history is integrity-protected, not encrypted; customer messages/relevant context can reach both providers during fallback.
 
-That distinction is central to the project. Conversational text is not a transaction, and a plausible answer is not evidence that a tool ran. The implementation also distinguishes skincare shopping guidance from diagnosis. Routine selection uses catalogue metadata and budget rules, not a claim of clinical suitability.
+## Simulated commerce with durable records
 
-Groq-primary/Gemini-fallback routing has been requested but is not implemented in this revision. I would not present a configured API key as a completed integration.
+The browser submits product IDs and quantities, not trusted prices or a payment flag. The server fingerprints the validated request and calls a transactional Supabase function. It prices from authoritative product rows and saves the order, purchased-item snapshots and tracked stock change atomically.
 
-## Checkout and order-processing workflow
+An owner-scoped idempotency key returns an existing order for an identical retry; a different payload under the same key conflicts. Immutable names/prices protect the purchase snapshot from later catalogue edits. Payment, order and fulfilment state remain separate: a simulated paid order is still unfulfilled and is not a provider receipt.
 
-The browser sends product IDs and quantities, not trusted prices or a chosen payment status. The server validates input, retrieves catalogue prices and asks a transactional Supabase function to save the order and its line items together.
+Customer/delivery details belong to the private order JSON snapshot, with generated queryable projections. Confirmation retrieves the saved record rather than assembling a success message only from browser input. That is a useful foundation for reconciliation and customer assistance—not evidence of real trading or a seller operations dashboard.
 
-An owner-scoped idempotency key and request fingerprint make an identical retry return the existing order rather than create a second one. Purchased names and prices are snapshotted so a later catalogue update cannot rewrite the customer's purchase record. Payment, order and fulfilment status are separate: simulated payment can be complete while the order remains unfulfilled.
+## The actual acknowledgement automation
 
-Customer name, email, phone and delivery details are stored with the private order snapshot, with generated queryable columns. The confirmation page retrieves that saved order rather than inventing a receipt from browser values. This provides the foundation an operator would need for reconciliation, support and a later acknowledgement workflow without claiming those business outcomes have already occurred.
+I have successfully tested order-email delivery. The supplied Make v1 blueprint documents the intended operational sequence: Supabase order INSERT → webhook → notification claim → ten-second delay → order with nested items → iterator/HTML row aggregation → Gmail → notification-status update.
 
-## Automation logic: what is verified and what is not
+The scenario uses deterministic email HTML, not an LLM-generated acknowledgement. Specific HTTP steps have Break/retry handlers and a missing-email failure branch. Its structure demonstrates the connection between an ecommerce event, data retrieval, message composition and operational state.
 
-The intended acknowledgement flow is order INSERT → Make webhook → retrieve order and all items → assemble/send acknowledgement → record notification outcome.
+The technical audit also made the boundary more precise. Two distinct Make webhook destinations are enabled on order INSERT. The supplied v1 references notification objects not found in the inspected live schema, and uses an item-name field that differs from the current app schema. Its Gmail failure route is disconnected in the designer export. Those findings do not invalidate my successful test, but they do mean the exact working revision, duplicate handling and error recovery need reconciliation before I claim universal reliability.
 
-The audit found **two enabled Supabase AFTER INSERT hooks to Make destinations**. That establishes a configured database-to-automation boundary. It does not prove that the Make scenario retrieves the items, sends the email or updates status correctly.
+I kept the working external configuration unchanged. The repository contains a sanitised, unbound blueprint template—not a credential-bearing export or a claim of a freshly verified import. The raw export embedded a privileged credential, so rotation/rebinding needs an owner-controlled process.
 
-No scenario blueprint, email delivery evidence or notification-status implementation was available to inspect. Two hooks also create a duplicate-processing risk worth resolving before claiming reliable notifications. Missing item lines, retry/idempotency rules, inbox/spam placement and notification outcome persistence remain explicit acceptance gates.
+## Testing and real evidence
 
-For an operator, the intended value is straightforward: reduce manual acknowledgement work and keep orders visible when delivery of a message fails. Those are design goals—not measured time savings, proven delivery rates or customer results for this project.
+Fresh local checks passed **50 automated tests**, **56 storefront browser groups**, **three provider frontend scenarios** and **four Python publication-tool tests**. Coverage includes authoritative pricing, private access, idempotent/concurrent retries, saved local snapshots, support approval, provider conversion/fallback, malformed output and secret redaction. The browser suite covers desktop/tablet/mobile plus honest outage/empty states.
 
-## Testing and verified results
+Separately, Vercel preview-build probes verified real Groq replies and tool use, then a successful real Gemini fallback after an injected Groq outage. A real Groq call through the Express frontend response contract returned HTTP 200. The first fallback attempt returned 404 for an old default model; changing to a supported Flash Lite default and retesting produced success.
 
-Fresh local checks on 13 November 2026 produced:
+The limits are explicit: browser provider tests mock external transports, the live HTTP contract ran inside the preview-build host rather than a deployed protected browser session, and no new production order or customer email was created for the audit. A second catalogue probe ran the tool but did not return the requested target metadata, so I do not equate tool execution with guaranteed answer relevance.
 
-- **40 passing automated tests**, covering checkout snapshots, pricing, idempotency, private access, support approval, schema behaviour, AI orchestration and redaction.
-- **56 passing browser groups** across desktop, tablet and mobile, including saved local customer snapshots and complete checkout/confirmation journeys.
-- Successful build and formatting checks; dependency audit reported no known vulnerabilities at that check.
-- A read-only production readiness response confirming a Supabase catalogue read with twelve records.
+Build/format checks passed and npm audits reported zero known vulnerabilities at the check. These are verification results—not performance, revenue, conversion or customer-outcome metrics.
 
-These numbers are verification scope, not performance or business metrics. Browser tests use real local Express/SQLite and a mock Gemini transport. PGlite migration tests are not live Supabase tests. This audit did not create production orders, call live AI or send customer emails.
+## Challenges and decisions
 
-## Engineering challenges and decisions
+- **Provider resilience without duplicate actions:** preserve canonical history/tool results, retry generation only, keep fallback sticky within a request and deduplicate identical tool execution.
+- **Honest AI and commerce:** keep approval, saved-record evidence, simulation and medical boundaries visible without filling the storefront with development language.
+- **Automation configuration drift:** separate owner-tested delivery, inspected blueprint design and live schema metadata rather than turning one diagram into a blanket success claim.
+- **Privacy before publication:** remove raw automation credentials/bindings, inventory inherited author metadata and preserve history pending explicit privacy decisions.
+- **Refine rather than restart:** retain the original catalogue relationships, brand, API route and Vercel/Supabase architecture.
 
-**Keeping customer experience separate from project evidence.** The storefront now reads like a coherent shop, while a concise disclosure and checkout consent keep the simulation honest. Detailed development records belong in documentation, not repeated sales-page banners.
+## Next steps
 
-**Making AI actions accountable.** Model-selected tools share backend validation and ownership rules with normal routes. Explicit approval separates an AI-prepared support draft from persistence.
+Reconcile the actual working Make scenario/revision, map both destinations, verify the notification claim/uniqueness contract and attach/test appropriate send-error handling with approved staging data. Review production's fallback model override before any rollout. Broaden live multi-turn provider testing and improve retention, guest recovery and distributed abuse controls.
 
-**Handling uncertain integration outcomes.** Earlier Gemini requests produced gateway errors and quota limits. Bounded generation-only recovery improves the failure path without replaying tools or fabricating an answer. Availability still needs real provider checks; local mocks do not certify it.
+The separately requested immediate Add to Cart → checkout journey remains planned; the working cart-review flow is retained. Real payment, fulfilment, marketing/Klaviyo automation and staffed response promises are not implemented or claimed.
 
-**Recognising configuration drift.** Live Make hooks exist outside the SQL migrations and application code. The documentation distinguishes observed external configuration from a reproducible, verified workflow. It avoids turning an intended diagram into a claim of implementation.
+Before public visibility, confirm image permissions, choose a code licence, resolve credential-rotation and author-privacy decisions, and review final repository artifacts. The separate portfolio website has not been modified; this factual case study can be adapted there after review.
 
-**Preserving a working codebase.** The project was refined in place, preserving catalogue relationships, Git ancestry and the existing Vercel/Supabase architecture instead of starting over.
+## What the project demonstrates
 
-## Current limitations and next improvements
-
-1. Inspect a sanitised Make scenario and verify every order/item mapping, sender outcome and status update. Resolve the two-hook intent and implement/review notification deduplication before claiming reliable acknowledgement.
-2. Implement and test Groq-primary/Gemini fallback, including shared context, technical failover and no duplicate tool actions.
-3. Implement the separately requested Add to Cart → direct checkout flow with single-add protection and checkout-side editing. Current cart navigation remains unchanged.
-4. Obtain authoritative product specifications, and address guest recovery, distributed rate limits, conversation privacy and retention controls.
-5. Confirm asset redistribution rights and choose a code licence before public release. The repository remains private until the owner approves publication.
-
-## Portfolio positioning
-
-GlowLab demonstrates the engineering discipline behind an AI-assisted customer journey: validated data, private records, explicit approvals, transactional writes and honest failure states. The strongest current outcome is a tested application foundation with clearly documented operational boundaries—not a claim that every automation is finished.
-
-This Markdown is ready to adapt for the owner's portfolio website. It has not been published to, or integrated with, that separate website. When the preferred GitHub repository is created and reviewed, replace the private source link above; add email or live-AI outcomes only after collecting the corresponding evidence.
+GlowLab demonstrates the engineering behind an AI-assisted customer journey: validated data, private records, explicit approvals, transactional writes, provider fallback and automation evidence. Its value as a portfolio project is not that every operational edge is finished—it is that the implemented behaviour and remaining boundaries can be explained and tested honestly.

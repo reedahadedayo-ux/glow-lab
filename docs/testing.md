@@ -1,68 +1,87 @@
-# Testing and verification
+# Verification and test evidence
 
-[README](../README.md) · [Architecture](architecture.md) · [Workflow audit](workflows.md)
+[README](../README.md) · [Release audit](release-audit.md) · [Make review](workflows.md)
 
-**Fresh execution: 13 November 2026.** Scope: the existing storefront/runtime plus documentation/publication checks. No production order, ticket, customer email or AI request was generated for this audit. Passing a local build is not a production-readiness claim.
+**Updated 13 November 2026.** Mocked transport tests, live calls, owner testimony and static blueprint evidence are deliberately separate. A successful build is not production readiness.
 
-## Results actually observed
+## Results
 
-| Command / check                      | Result                                                                                                                           | Evidence boundary                                                                                                |
-| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `npm ci`                             | 139 packages installed; audit initially reported 0 vulnerabilities.                                                              | Dependency installation, not application behaviour.                                                              |
-| `npm test`                           | **40 passed, 0 failed**.                                                                                                         | Node tests; local SQLite/PGlite and explicitly mocked external transports.                                       |
-| `npm run test:browser`               | **56 groups passed**; no unexpected page/console errors.                                                                         | Local Express/SQLite; mock Gemini transport; 1440px, 768px and 390px.                                            |
-| `npm run build`                      | Passed.                                                                                                                          | Public asset build; diagnostic flags unset. No live-provider verification implied.                               |
-| `npm run format:check`               | Passed.                                                                                                                          | Existing Prettier coverage; not ESLint/static type checking. No separate lint script exists.                     |
-| `npm audit` / `npm audit --omit=dev` | **0 reported vulnerabilities** at the check.                                                                                     | Registry advisory snapshot, not a complete security assessment.                                                  |
-| Heuristic publication scan           | Initial tracked tree and all 133 unique ancestor blobs: no pattern findings. Re-run after staging final docs.                    | Explicit credential/webhook/private-file rules; not comprehensive detection.                                     |
-| `detect-secrets` offline scan        | Current tracked snapshot: five test-canary flags. All 22 full ancestor snapshots: 56 flags at the same five test-file locations. | Reviewed as intentional test-only secrets, not real credentials. No online credential validation.                |
-| Production `GET /api/ready`          | `ready=true`, `database=supabase`, `catalogueCount=12`, `geminiConfigured=true`.                                                 | Real catalogue read; the Gemini flag is configuration presence only.                                             |
-| Supabase trigger/column metadata     | Two enabled order AFTER INSERT Make-destination HTTP hooks; neither UPDATE/DELETE. No order notification-status column.          | Read-only configuration, no customer rows or webhook values included in docs.                                    |
-| Make scenario/email tests            | **Not performed / blocked by missing scenario access/export.**                                                                   | No claim of line-item email, inbox placement, retry safety or status update.                                     |
-| Repository creation                  | **Blocked** by GitHub integration permission (`createRepository`).                                                               | Authentication to the existing repository succeeds. Preferred new repository does not exist from this operation. |
+| Check                            | Observed result                                                                                                                                                         | Boundary                                                                                                                                                               |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm test`                       | **50 pass, 0 fail**.                                                                                                                                                    | Local Node tests; SQLite/PGlite; mocked external transport where applicable.                                                                                           |
+| `npm run test:browser`           | **56 journey/page/viewport groups pass**; no unexpected page/console errors.                                                                                            | Actual local Express/SQLite, injected Gemini test transport; 1440px/768px/390px.                                                                                       |
+| `npm run test:browser:providers` | **3 scenarios pass**: Groq-primary response, Gemini fallback, both-provider error.                                                                                      | Actual browser/UI/HTTP/router at 390px; provider transports explicitly mocked. Error message displayed, input usable, keyboard close control and viewport fit checked. |
+| Python publication tools         | **4 tests pass**.                                                                                                                                                       | Sanitizer removes config/bindings/metadata, preserves connected mappings/error handlers and checks template JSON topology. Not a Make import test.                     |
+| Build / formatting               | Passed locally; documentation formatting checked separately.                                                                                                            | No standalone JavaScript lint script exists.                                                                                                                           |
+| Dependency audit                 | Both full and production-only `npm audit`: **0 reported vulnerabilities** at check time.                                                                                | Advisory snapshot, not a security certification.                                                                                                                       |
+| Read-only live Supabase metadata | Six commerce tables have RLS; no anon/authenticated table grants; commerce RPCs invoker-security/empty search path/service-role execution only for the inspected roles. | No customer rows exported; no SQL writes.                                                                                                                              |
+| Order notifications              | Owner reports a successful email test; actual v1 blueprint inspected.                                                                                                   | No fresh audit-triggered mail/order. Current schema and blueprint mismatches remain documented.                                                                        |
+| Publication helpers              | Tracked-tree/history heuristic and local Markdown target checks run before final handoff.                                                                               | Scope and limitations in [security review](security-review.md); scanner output is evidence, not proof of universal absence of secrets.                                 |
 
-The final prepared tree passed the publication helper (114 tracked files / 161 committed historical blobs / zero findings), all 80 local Markdown targets/fragments, and staged whitespace checks. The dedicated scanner still flagged only the same five test canaries. A final re-run of the 40 automated tests, build and formatter also passed. The inactive CI template is saved at `docs/ci-workflow.example.yml`. GitHub rejected activation because the integration lacks `workflows` permission; no remote Actions success is claimed.
+## Live Groq/Gemini evidence
 
-## Automated suite coverage
+[Sanitised results](evidence/provider-probes.json) retain only provider/model/outcome/status and contract flags—not keys, raw customer data or model answers. Vercel build-log events were read specifically to verify these probes.
 
-- `backend.test.js`: catalogue integrity, authoritative prices/totals, customer/item snapshots, idempotent and concurrent retries, stock, private order lookup, support approval/persistence, CSRF/content rules, unavailable storage, Gemini orchestration with injected transport, signed-history errors.
-- `schema.test.js`: local PostgreSQL-compatible migration/constraint/function behaviour and additive customer/fulfilment/totals correction. This is **PGlite**, not live Supabase.
-- `supabase-adapter.test.js`: real SDK adapter with mocked HTTP; schema/project/credential validation, owner scoping, RPC inputs, sanitized database faults and no false catalogue fallback.
-- `gemini-security.test.js`: frontend secret boundary, recursive redaction, sanitized errors/logs, model text/history key suppression using explicit canaries.
-- `gemini-request.test.js`: bounded transient generation recovery, non-retryable categories, shared deadline and no tool replay after generation retry.
-- `lumi-system-prompt.test.js`: prompt rules/wiring, tool-result rounds and signed history with mock transport. Not proof of clinical correctness or model compliance in production.
-- `storefront-copy.test.js`: exact-only legacy text adaptation, future configured text pass-through, truthful payment/state labels, missing-detail slots and simulation consent.
+| Requirement                  | Actual evidence                                                                                                                                                                                                                                                 |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Successful Groq              | Preview `dpl_5h9LHHUi5fvdAuFLfsuBSgHuzKDX`, commit `2befb12`: `openai/gpt-oss-20b` generated a greeting, selected `search_products`, received real read-only Supabase-backed catalogue results and included the target ID/price in returned product metadata.   |
+| Groq outage → Gemini success | Retest `dpl_Fsibh3fx5exXQBU1cugKAp6JpHsr`, commit `60c2f56`: **injected primary 503**, then actual Gemini `gemini-3.1-flash-lite` generation succeeded with text and signed history. Groq outage was simulated; Gemini was not mocked.                          |
+| Both providers unavailable   | Explicitly injected 503 failures produced `LLM_UNAVAILABLE`, no successful answer, no tool execution or write. Same branch is covered by unit/API/browser fault tests. This is controlled fault evidence, not an assertion that both public services were down. |
+| Delivery contract            | Real Groq through the actual Express `/api/lumi` route returned **HTTP 200** with text, signed history and products array on a local listener **inside the Vercel preview-build host**. This is not a deployed protected-browser test.                          |
+| Frontend rendering           | The added browser suite verifies primary/fallback/error responses through the real frontend at 390px, using mocked external transports. The existing 56 groups verify catalogue, cart, checkout, support and tool suggestions.                                  |
 
-## Browser coverage and screenshots
+### Failed first attempt and retest limits
 
-The browser harness uses the actual local API/storage implementation and injected Gemini replies only for reproducibility. It checks:
+The initial Gemini fallback attempt used the inherited `gemini-2.5-flash` default and returned **404 `GEMINI_MODEL`**. The default was changed to a currently documented Flash Lite model and re-tested successfully. No real fallback success is claimed for the retired default or production's older model override.
 
-- All nine pages at desktop/tablet/mobile widths; image loading, horizontal overflow, navigation, legacy absence and local links.
-- All twelve direct product-detail URLs and labels for unavailable size/ingredients/directions.
-- Search/category filters, modal keyboard closing, cart addition/quantity/removal/reload and explicitly approved AI cart selections.
-- Checkout native validation, simulation consent, saved order reference, customer snapshot persistence and reload/lookup at desktop and touch widths.
-- Support request save, AI draft confirmation and privacy/ownership boundaries.
-- FAQ controls and deliberate 503 catalogue recovery; checkout cannot claim success during failure.
+The second Groq catalogue probe did run `search_products` and return text, but did **not** include the requested target ID/price in returned product metadata. The first probe did. This demonstrates why tool execution alone does not certify answer relevance or every live shopping interaction. The probe's generic `ok` flag means text/history returned; it is not an accuracy score. This limitation is retained in the evidence JSON rather than hidden.
 
-Expanded exhaustive navigation uses separate local app instances per viewport to stay below the real per-instance limiter. Production limits were not weakened to make tests pass. Most screenshots are ignored in `test-results/`. The selected documentation product screenshot contains only catalogue information; it is labelled as a **local test capture**, not live AI/email evidence.
+The first preview probes ran with Vercel-selected Node 26 because the inherited engine range was `>=22`. The source/lockfile are now pinned to **22.x**, matching local tests. A final build verifies packaging under the pinned runtime; provider availability claims refer to the explicit probe deployments above, not a full production release.
 
-## Historical evidence vs fresh verification
+Temporary Groq preview scope was approved by the owner, applied without reading/changing the secret value, and restored to production-only. Provider probe flag is now `0`. Existing protected probe deployments retain deployment-time environment snapshots. No SSO bypass, production promotion, database mutation or email send occurred.
 
-Archived reports contain earlier connector SQL persistence checks, live SDK/catalogue probes, gateway 504s and public chat 429 quota failures. They are dated observations, not fresh certification. Current live AI generation was deliberately not retried during a documentation task. Previously observed Supabase checkout capability is not a substitute for a new production write test, and none is claimed here.
+## Unit/integration coverage
 
-## Outstanding acceptance gates
+- Existing checkout/security/schema tests: authoritative pricing, stored customer/item snapshots, concurrent/idempotent retries, stock conflicts, origin/JSON rules, owner-bound order lookup, support confirmation and safe unavailable storage.
+- PGlite: PostgreSQL-compatible constraints/functions/migrations locally, not live Supabase.
+- Supabase adapter: actual SDK with mocked HTTP/schema/owner/RPC/error assertions, not live HTTP writes.
+- Existing Gemini recovery/policy tests: bounded transient retry, no tool replay, signed history, dedicated policy and secret redaction with canaries.
+- New `llm-providers.test.js`: REST request/model/schema conversion, Groq-only success, fallback on eleven provider/network/status cases, history conversion with legacy call IDs, sticky fallback after tool execution, repeated-call deduplication, malformed/empty/truncated primary output, no frontend keys, redaction, unchanged HTTP contract and exact-only current privacy projection.
+- New Python tests: sanitised blueprint topology, removal of bindings/private values, mapping preservation and no input mutation.
 
-| Area                       | Required test before claiming operational success                                                                                                                                                                                              |
-| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Current Gemini             | Real normal question, model-selected search/routine, contextual follow-up and safe failure; confirm current account model/quota privately.                                                                                                     |
-| Groq/fallback              | Implement first, then verify actual Groq default calls, simulated technical failure to Gemini, shared context/tool results, no duplicate actions and dual-provider failure. No such tests pass in this revision because it is not implemented. |
-| Direct checkout navigation | Implement first, then verify single addition, double-click handling, preserved cart/back/reload and checkout-side quantity/removal at touch/desktop.                                                                                           |
-| Central checkout           | Explicitly approved staging HTTP save + owner lookup + repeat/concurrent retry, then inspect saved snapshots without exposing customer data.                                                                                                   |
-| Make                       | Sanitised blueprint, intended hook selection, event/order/item mapping, aggregation, authentication, retry/deduplication and state contract.                                                                                                   |
-| Email                      | Controlled recipient and explicit permission; every product line, quantities/prices/totals, truthful simulation wording, accepted/sent/failure evidence, bounce and spam/inbox review.                                                         |
-| Notification status        | Identify actual external state or review a migration. Verify atomic claim, no double send, failure handling and reconciliation after ambiguous timeout.                                                                                        |
-| Public release             | Final history/staged-source secret scan, owner privacy/asset-rights/licence review and explicit visibility approval.                                                                                                                           |
+## Browser coverage and honest scope
 
-## Commands to avoid accidentally running on production
+The existing 56 groups cover all nine pages and twelve product links, image/local-link loading, search/filter, detail labels, persistent cart/reload, quantity/removal, explicit AI product selection, checkout validation/consent and saved local confirmation. Touch widths include mobile navigation, FAQ, support approval and checkout. A deliberate 503 catalogue fault recovers honestly. Production limits were not disabled to make these tests pass.
 
-`npm run test:live:supabase` includes `--allow-demo-writes` and can create durable orders/tickets and fire external hooks. Seed and migration scripts change data/schema. Preview live-AI diagnostics send real quota-consuming requests. Review the scripts and obtain explicit staging permission before using them. Do not use a production order to manufacture a portfolio outcome.
+The new provider browser scenarios test the actual `#lumiInput` and message log, not an isolated JSON snapshot. They inspect displayed error/answer text and safe recovery controls. This is useful keyboard/responsiveness evidence, not a WCAG certification or screen-reader audit. Broader assistive-technology testing is still needed.
+
+The committed screenshot is catalogue-only. Ignored `test-results/` includes local fictional checkout screenshots; these are not published customer records or mail proofs.
+
+## Commands
+
+```sh
+npm ci
+npm test
+npm run test:browser
+npm run test:browser:providers
+python3 -m unittest discover -s tests -p '*_test.py'
+npm run build
+npm run format:check
+npx prettier --check README.md NOTICE.md 'docs/**/*.md' docs/ci-workflow.example.yml automation/make/README.md
+npm audit
+npm audit --omit=dev
+python3 scripts/check-doc-links.py
+python3 scripts/audit-publication.py --all-refs
+git diff --check
+```
+
+Do **not** casually run `npm run test:live:supabase`: it already includes `--allow-demo-writes` and may create durable orders/tickets and fire external email workflows. Migrations/seeding also require explicit review/permission. Live provider probes consume quota and require deliberate preview configuration.
+
+## Outstanding checks
+
+- Reconcile Make's working execution/revision with the supplied v1 mappings and current live notification objects. Map the two private webhook destinations to their actual scenarios before changing either.
+- Inspect atomic notification claim/uniqueness and connected Gmail error handling; test retries/ambiguous provider outcomes in an approved staging flow with controlled inboxes.
+- Actual Make import/rebinding of the sanitised template has not been performed.
+- Full live-provider multi-turn routine/support/order interactions and deployed protected-browser rendering are not certified by the narrow provider probes. No new production checkout/notification test was authorised.
+- Final production model override, preview database/session settings and rollout remain owner-controlled. Main is not merged.
+- Complete privacy/asset/licence decisions and final repository artifact review before changing visibility.

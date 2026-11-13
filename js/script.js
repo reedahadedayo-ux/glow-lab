@@ -370,9 +370,9 @@ function initLumi() {
   panel.setAttribute("role", "dialog");
   panel.setAttribute("aria-label", "Lumi skincare shopping assistant");
   panel.innerHTML =
-    '<header class="lumi-header"><span class="lumi-avatar">✧</span><div><h2>Lumi</h2><p>Your skincare shopping companion</p></div><button id="closeLumi" aria-label="Close Lumi">×</button></header><div class="lumi-history" id="lumiHistory" role="log" aria-live="polite" aria-relevant="additions"></div><form class="lumi-form" id="lumiForm"><label class="small" for="lumiInput">How can I help?</label><div class="lumi-input-row"><textarea class="input" id="lumiInput" placeholder="A simple routine for oily skin…" rows="2" maxlength="2000" required></textarea><button class="btn btn-primary" aria-label="Send message">↑</button></div><p class="lumi-disclaimer">AI shopping guidance, not medical advice. Messages are sent to Google Gemini. Please don’t share sensitive information.</p><button type="button" class="lumi-reset" id="resetLumi">Start a new conversation</button></form>';
+    '<header class="lumi-header"><span class="lumi-avatar">✧</span><div><h2>Lumi</h2><p>Your skincare shopping companion</p></div><button id="closeLumi" aria-label="Close Lumi">×</button></header><div class="lumi-history" id="lumiHistory" role="log" aria-live="polite" aria-relevant="additions"></div><form class="lumi-form" id="lumiForm"><label class="small" for="lumiInput">How can I help?</label><div class="lumi-input-row"><textarea class="input" id="lumiInput" placeholder="A simple routine for oily skin…" rows="2" maxlength="2000" required></textarea><button class="btn btn-primary" aria-label="Send message">↑</button></div><p class="lumi-disclaimer">AI shopping guidance, not medical advice. Messages and relevant context may be sent to Groq and, on fallback, Google Gemini. Please don’t share sensitive information.</p><button type="button" class="lumi-reset" id="resetLumi">Start a new conversation</button></form>';
   document.body.append(panel);
-  if (!config.gemini)
+  if (!config.lumiConfigured)
     $(".lumi-header p", panel).textContent =
       "Lumi is currently unavailable. Browse Products or use Contact.";
   const history = $("#lumiHistory");

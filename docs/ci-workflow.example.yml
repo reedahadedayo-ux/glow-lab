@@ -33,9 +33,11 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run test:browser
+      - run: npm run test:browser:providers
+      - run: python3 -m unittest discover -s tests -p '*_test.py'
       - run: npm run build
       - run: npm run format:check
       - run: npx prettier --check README.md NOTICE.md "docs/**/*.md" docs/ci-workflow.example.yml
       - run: python3 scripts/check-doc-links.py
-      - run: python3 scripts/audit-publication.py --history
+      - run: python3 scripts/audit-publication.py --all-refs
       - run: git diff --check

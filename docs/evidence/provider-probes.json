@@ -1,0 +1,46 @@
+{
+  "date": "2026-11-13",
+  "scope": "Vercel preview-build host: real provider calls plus explicit fault injection; no production writes or mail",
+  "initial": {
+    "commit": "2befb12ab5f6e6a152c4280c6c7f8c543d761883",
+    "deployment": "dpl_5h9LHHUi5fvdAuFLfsuBSgHuzKDX",
+    "groq_model": "openai/gpt-oss-20b",
+    "groq_greeting": "success",
+    "groq_search_products": "success",
+    "catalogue_target_id_price_matched": true,
+    "injected_groq_503_then_live_gemini": {
+      "model": "gemini-2.5-flash",
+      "outcome": "failure",
+      "upstream_status": 404
+    },
+    "live_groq_http_contract_status": 200
+  },
+  "retest": {
+    "commit": "60c2f566c3071a072fa16c2d6e9a45a6d3ffa40f",
+    "deployment": "dpl_Fsibh3fx5exXQBU1cugKAp6JpHsr",
+    "groq_model": "openai/gpt-oss-20b",
+    "gemini_model": "gemini-3.1-flash-lite",
+    "groq_greeting": "success",
+    "groq_search_products": "success",
+    "catalogue_target_id_price_matched": false,
+    "injected_groq_503_then_live_gemini": "success_with_text_and_signed_history",
+    "both_injected_503": {
+      "outcome": "expected_friendly_failure",
+      "code": "LLM_UNAVAILABLE"
+    },
+    "live_groq_http_contract": {
+      "status": 200,
+      "text": true,
+      "signed_history": true,
+      "products_array": true
+    }
+  },
+  "limits": [
+    "No raw prompts, responses, keys, customer data or private webhook destinations included.",
+    "Model output relevance is not guaranteed: second catalogue probe ran the tool but did not include the requested target in returned product metadata.",
+    "HTTP contract was exercised on a local listener on the Vercel build host, not through a deployed protected browser session.",
+    "Groq outage and dual outage were injected; Gemini fallback used the actual provider and existing private key.",
+    "Final frontend primary/fallback/error display was tested locally with mocked provider transports.",
+    "Temporary Groq preview scope restored to production-only and provider-probe flag reset to zero. Existing protected probe deployments retain their deployment-time environment snapshots."
+  ]
+}
