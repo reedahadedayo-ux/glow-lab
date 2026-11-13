@@ -1,0 +1,41 @@
+# INACTIVE TEMPLATE: requires owner review and GitHub workflows permission.
+# Move to .github/workflows/ci.yml to activate; update the formatting path below.
+name: Application checks
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GLOWLAB_VERIFY_LIVE: "0"
+      GLOWLAB_PROBE_DEPLOYED_LUMI: "0"
+      GLOWLAB_PROBE_GEMINI_RECOVERY: "0"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: npm ci
+      - run: npm test
+      - run: npm run test:browser
+      - run: npm run build
+      - run: npm run format:check
+      - run: npx prettier --check README.md NOTICE.md "docs/**/*.md" docs/ci-workflow.example.yml
+      - run: python3 scripts/check-doc-links.py
+      - run: python3 scripts/audit-publication.py --history
+      - run: git diff --check

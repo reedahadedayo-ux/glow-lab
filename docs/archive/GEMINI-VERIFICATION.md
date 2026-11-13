@@ -1,3 +1,5 @@
+> **Historical implementation record.** This is not the current project status. Start with the [current README](../../README.md), [architecture](../architecture.md) and [workflow audit](../workflows.md). Later deployments and database configuration may supersede statements below.
+
 # Gemini integration verification — 13 November 2026
 
 ## Server boundary and secret handling
@@ -19,12 +21,14 @@ Branch-scoped `GLOWLAB_VERIFY_LIVE=1` explicitly enables read-only live verifica
 ## Confirmed live evidence so far
 
 Vercel build `dpl_GHxaVvjyzjsorvfbZYPy2UmEo7kC` on revision `5eb812c`:
+
 - Real official SDK request with configured secret: HTTP **404** for `gemini-2.5-flash`.
 - Actual Supabase HTTPS catalogue read: **PASS**, 12 records with exact original ID/price/image tuple matches.
 - Actual public-output secret scan: **PASS**, 24 files.
 - Lumi search/routine: **BLOCKED**, no successful Gemini inference yet. Build correctly failed.
 
 Discovery build `dpl_AbX1hreSgHZTLGqUt4pidfohMa1a` on revision `65120a6`:
+
 - Reproduced 404 for `gemini-2.5-flash` (even though the model listing still advertised it).
 - Successfully called Google's model listing with the stored key; response advertised `models/gemini-3.5-flash` among generative models.
 - Selected **gemini-3.5-flash** via a branch-scoped preview `GEMINI_MODEL` variable. No production model setting was changed.
@@ -42,14 +46,14 @@ The harness runs on the Vercel build host so the sandbox egress restriction and 
 
 Completed sanitized live record (2026-11-13T10:23:56.012Z, logged at 10:24:32.126Z):
 
-| Check | Actual result |
-| --- | --- |
-| Public output scan against configured key | PASS, 24 files, no key found |
-| Official SDK generateContent | PASS, real nonempty model response |
-| Supabase catalogue HTTPS | PASS, all 12 original tuples match |
-| Server configuration API | PASS, configured boolean only, no key returned |
-| Real Lumi product search over HTTP | PASS, model requested search_products, one real catalogue read, cerave-foaming at NGN 14,500 |
-| Real Lumi routine over HTTP | PASS, model requested build_skincare_routine, one real catalogue read, NGN 43,300 total |
+| Check                                     | Actual result                                                                                |
+| ----------------------------------------- | -------------------------------------------------------------------------------------------- |
+| Public output scan against configured key | PASS, 24 files, no key found                                                                 |
+| Official SDK generateContent              | PASS, real nonempty model response                                                           |
+| Supabase catalogue HTTPS                  | PASS, all 12 original tuples match                                                           |
+| Server configuration API                  | PASS, configured boolean only, no key returned                                               |
+| Real Lumi product search over HTTP        | PASS, model requested search_products, one real catalogue read, cerave-foaming at NGN 14,500 |
+| Real Lumi routine over HTTP               | PASS, model requested build_skincare_routine, one real catalogue read, NGN 43,300 total      |
 
 Routine products: cerave-foaming (14,500), neutrogena-hydro (12,500), eucerin-oil-control (16,300). Product IDs/prices/images were checked against the actual Supabase records. No cart mutation occurred. Model text was nonempty but deliberately not logged.
 

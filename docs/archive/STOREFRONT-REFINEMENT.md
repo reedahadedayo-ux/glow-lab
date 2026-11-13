@@ -1,3 +1,5 @@
+> **Historical implementation record.** This is not the current project status. Start with the [current README](../../README.md), [architecture](../architecture.md) and [workflow audit](../workflows.md). Later deployments and database configuration may supersede statements below.
+
 # Storefront refinement
 
 ## Checkpoint and scope
@@ -22,15 +24,15 @@ Legacy catalogue/policy wording is adapted only for exact known legacy text in a
 
 ## Validation
 
-| Check | Result / boundary |
-| --- | --- |
-| Automated suite | 40/40 pass: checkout, idempotency, owner-bound lookup, customer snapshots, tools, secret redaction, PostgreSQL contract, Supabase adapter and copy guards. SDK/adapter transport tests use mocks, not live services. |
-| Browser suite | 56 groups pass across all nine pages at 1440px desktop, 768px and 390px; no horizontal overflow or unexpected console/page errors. All twelve product detail URLs checked; image and same-page-anchor/file-link checks pass. |
-| Shopping journeys | Local real Express/SQLite checkout at desktop and both touch widths; customer email snapshot persisted. Cart quantity/removal/reload, consent/native validation, saved order lookup, support confirmation, FAQ controls and mobile nav verified. Gemini browser transport is mocked. |
-| Failure handling | Existing deliberate 503 catalogue-outage recovery still passes; checkout stays disabled during failure. Production rate limiter was not changed or disabled for tests. |
-| Build / formatting | Build, formatting and git whitespace checks pass. |
-| Read-only production check | `/api/ready` returned ready=true, Supabase, 12 products; `/api/products` returned source=database/backend=supabase and all 12 unchanged IDs/prices/images. This checks the existing production backend, not a deployment of this branch. |
-| Backend preservation | No diff in server/, api/, supabase/, data/, vercel.json or package manifests. No migrations, environment changes, production orders, support records, real charges or database writes performed for this task. |
+| Check                      | Result / boundary                                                                                                                                                                                                                                                                    |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Automated suite            | 40/40 pass: checkout, idempotency, owner-bound lookup, customer snapshots, tools, secret redaction, PostgreSQL contract, Supabase adapter and copy guards. SDK/adapter transport tests use mocks, not live services.                                                                 |
+| Browser suite              | 56 groups pass across all nine pages at 1440px desktop, 768px and 390px; no horizontal overflow or unexpected console/page errors. All twelve product detail URLs checked; image and same-page-anchor/file-link checks pass.                                                         |
+| Shopping journeys          | Local real Express/SQLite checkout at desktop and both touch widths; customer email snapshot persisted. Cart quantity/removal/reload, consent/native validation, saved order lookup, support confirmation, FAQ controls and mobile nav verified. Gemini browser transport is mocked. |
+| Failure handling           | Existing deliberate 503 catalogue-outage recovery still passes; checkout stays disabled during failure. Production rate limiter was not changed or disabled for tests.                                                                                                               |
+| Build / formatting         | Build, formatting and git whitespace checks pass.                                                                                                                                                                                                                                    |
+| Read-only production check | `/api/ready` returned ready=true, Supabase, 12 products; `/api/products` returned source=database/backend=supabase and all 12 unchanged IDs/prices/images. This checks the existing production backend, not a deployment of this branch.                                             |
+| Backend preservation       | No diff in server/, api/, supabase/, data/, vercel.json or package manifests. No migrations, environment changes, production orders, support records, real charges or database writes performed for this task.                                                                       |
 
 Screenshots from desktop/touch widths and populated touch checkout/confirmation are in ignored `test-results/`; they are review artifacts, not production assets. The live local preview runs the real existing backend with explicitly local SQLite, not production Supabase. It does not substitute mock AI responses; without a configured Gemini key it honestly reports unavailability.
 

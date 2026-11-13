@@ -1,3 +1,5 @@
+> **Historical implementation record.** This is not the current project status. Start with the [current README](../../README.md), [architecture](../architecture.md) and [workflow audit](../workflows.md). Later deployments and database configuration may supersede statements below.
+
 # Migration review: eight requirements
 
 Project: `avebkyxbhwfzvivvcfmb` (GlowLab, created with explicit user permission).

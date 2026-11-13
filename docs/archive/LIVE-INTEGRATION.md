@@ -1,3 +1,5 @@
+> **Historical implementation record.** This is not the current project status. Start with the [current README](../../README.md), [architecture](../architecture.md) and [workflow audit](../workflows.md). Later deployments and database configuration may supersede statements below.
+
 # Live Supabase integration record — 2026-11-13
 
 ## Current result, without conflating test layers
@@ -27,11 +29,11 @@ No local/mock test is represented here as a live success. No real money was char
 
 ## Changes actually applied
 
-| Remote version | Name | Local source |
-|---|---|---|
-| 20261113092946 | glowlab_customer_contract | supabase/migrations/20261113092946_glowlab_customer_contract.sql |
+| Remote version | Name                         | Local source                                                        |
+| -------------- | ---------------------------- | ------------------------------------------------------------------- |
+| 20261113092946 | glowlab_customer_contract    | supabase/migrations/20261113092946_glowlab_customer_contract.sql    |
 | 20261113093042 | glowlab_expose_server_schema | supabase/migrations/20261113093042_glowlab_expose_server_schema.sql |
-| 20261113093538 | glowlab_order_fields | supabase/migrations/20261113093538_glowlab_order_fields.sql |
+| 20261113093538 | glowlab_order_fields         | supabase/migrations/20261113093538_glowlab_order_fields.sql         |
 
 Local migration filenames are aligned with the remote migration versions to avoid accidental
 reapplication by future migration tooling. Do not apply the review package as an extra migration.
@@ -84,6 +86,7 @@ JSON rather than generated columns. shipping_fee is a compatibility alias; edit 
 subtotal is required; CHECK(total = subtotal + shipping_fee) and CHECK(subtotal >= 0).
 
 Independent statuses:
+
 - payment_status: paid or refunded; checkout chooses paid.
 - payment_method: simulated only.
 - order_status: confirmed, processing, shipped, delivered, cancelled (legacy-compatible);
@@ -106,6 +109,7 @@ it does not change IDs, references, created_at, prices, customer source snapshot
 ## Actual RLS, grants and function security
 
 Live pg_class/pg_policies/privilege checks after the correction:
+
 - RLS **enabled on all six tables**.
 - **Zero public policies**. Default deny is intentional; not a missing permissive policy.
 - No anon/authenticated schema usage, private table SELECT or mutation function execution.
@@ -146,12 +150,12 @@ credentials. No second database is required.
 ### Original baseline order — preserved and backfilled
 
 - ID: `2c253287-36b9-4ad3-9c27-e85cd567d170`.
-- Reference: `GL-7A631E74C6B74272AD006F45A8283DA8`.
+- Reference: `[historical test reference omitted]`.
 - created_at preserved: `2026-11-13T09:31:18.734161+00:00`.
 - Two item rows, subtotal/total ₦38,800; shipping_fee ₦0.
 - paid / simulated / confirmed / unfulfilled after correction.
 - Original customer/delivery data remains stored (explicitly fictional test data).
-- Linked ticket preserved: `SUP-1D2492C7089A47AE874AF436D3904ADE` (open).
+- Linked ticket preserved: `[historical test reference omitted]` (open).
 
 ### New simulated order after additive correction
 
@@ -159,7 +163,7 @@ Executed actual deployed create_demo_order as **service_role** through the conne
 no LocalStore, in-memory database or SDK mock involved.
 
 - ID: `d8013b02-d13a-45ff-b345-2ad459f4011c`.
-- Reference: **GL-61F208DF05EC4B5AA014448530DD623D**.
+- Reference: **[historical test reference omitted]**.
 - created_at: `2026-11-13T09:36:04.879109+00:00`.
 - Three saved lines: Beauty of Joseon Relief Sun ₦15,200 ×1; CeraVe Moisturizing Cream
   ₦17,800 ×1; CeraVe Foaming Facial Cleanser ₦14,500 ×1.
@@ -169,7 +173,7 @@ no LocalStore, in-memory database or SDK mock involved.
 - Fictional name/email/phone/address/city/instructions persisted in JSON and projected fields.
 - New transaction re-read returned three item rows, snapshot sum ₦47,500, and one row for the
   owner/retry-key combination. Exact retry returned the same reference, not a duplicate.
-- Persisted linked support ticket: **SUP-395253B95D8C4DA8AD6D8620367A4897**, normal/open.
+- Persisted linked support ticket: **[historical test reference omitted]**, normal/open.
 - Owner + reference + matching email query found the real order. Wrong-owner, wrong-email and
   unknown-reference predicates returned zero rows in earlier live checks. These verify SQL
   lookup predicates, not a successful website POST /api/orders/lookup HTTP test.

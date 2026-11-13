@@ -1,3 +1,5 @@
+> **Historical implementation record.** This is not the current project status. Start with the [current README](../../README.md), [architecture](../architecture.md) and [workflow audit](../workflows.md). Later deployments and database configuration may supersede statements below.
+
 # Handover / remaining live acceptance gate
 
 See **PRODUCTION-READINESS.md** for the latest diagnosis: actual SDK transport ECONNRESET before HTTP, not a Supabase HTTP 503; validated configuration/DNS and healthy connector services do not establish website connectivity. New diagnostics and fail-closed APIs are implemented. Latest local verification: 23 automated tests, 38 browser groups.

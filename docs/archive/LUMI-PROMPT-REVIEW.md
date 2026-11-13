@@ -1,3 +1,5 @@
+> **Historical implementation record.** This is not the current project status. Start with the [current README](../../README.md), [architecture](../architecture.md) and [workflow audit](../workflows.md). Later deployments and database configuration may supersede statements below.
+
 # Proposed Lumi system prompt — review before merge
 
 ## Status and scope
@@ -6,12 +8,12 @@ Prepared on `arena/4283f31f-glow-lab`, the session's fixed working branch, which
 
 This branch already contains the earlier storefront upgrade. This task's proposed changes are limited to:
 
-| File | Proposed change |
-| --- | --- |
-| `server/lumi-system-prompt.js` | New dedicated server-only system prompt |
-| `server/lumi.js` | Import the dedicated prompt instead of defining it inline; preserve the existing export |
-| `tests/lumi-system-prompt.test.js` | Four policy/wiring/history regression tests |
-| `docs/LUMI-PROMPT-REVIEW.md` | This review and test report |
+| File                               | Proposed change                                                                         |
+| ---------------------------------- | --------------------------------------------------------------------------------------- |
+| `server/lumi-system-prompt.js`     | New dedicated server-only system prompt                                                 |
+| `server/lumi.js`                   | Import the dedicated prompt instead of defining it inline; preserve the existing export |
+| `tests/lumi-system-prompt.test.js` | Four policy/wiring/history regression tests                                             |
+| `docs/LUMI-PROMPT-REVIEW.md`       | This review and test report                                                             |
 
 Pre-existing uncommitted `docs/PREVIEW-DEPLOYMENT.md` and `docs/GEMINI-VERIFICATION.md` were present before this task and were not edited as part of it.
 

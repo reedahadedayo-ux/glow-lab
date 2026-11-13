@@ -11,3 +11,13 @@ image-search/
 *.log
 
 public/
+
+# Private automation exports, mail samples and data dumps: sanitise before sharing.
+private-exports/
+*.sql.gz
+*.dump
+*.sqlite
+*.sqlite3
+*.pem
+*.key
+.cache/

@@ -1,3 +1,5 @@
+> **Historical implementation record.** This is not the current project status. Start with the [current README](../../README.md), [architecture](../architecture.md) and [workflow audit](../workflows.md). Later deployments and database configuration may supersede statements below.
+
 > Latest verification: **23 automated tests and 38 browser journey/page/viewport groups pass**. The additional browser groups verify deliberate Express 503 recovery, preserved cart, disabled checkout, independent Contact/policies, and catalogue recovery. Supabase adapter tests use the official SDK with mocked HTTP transport, not the live database. Read PRODUCTION-READINESS.md for the failed real network probe and open live gates.
 
 # Local test report — 2026-11-13

@@ -1,14 +1,16 @@
+> **Historical implementation record.** This is not the current project status. Start with the [current README](../../README.md), [architecture](../architecture.md) and [workflow audit](../workflows.md). Later deployments and database configuration may supersede statements below.
+
 # Lumi availability investigation — 2026-11-13
 
 ## Confirmed public-production failure
 
 Read-only requests made from a Vercel preview build to https://glow-lab-puce.vercel.app (not a local mock):
 
-| Request | HTTP | Application code | Duration |
-| --- | --- | --- | --- |
-| GET /api/config | 200 | — | 145 ms |
-| POST /api/lumi, greeting | 503 | GEMINI_UNAVAILABLE | 24,213 ms |
-| POST /api/lumi, CeraVe catalogue question | 503 | GEMINI_UNAVAILABLE | 24,480 ms |
+| Request                                   | HTTP | Application code   | Duration  |
+| ----------------------------------------- | ---- | ------------------ | --------- |
+| GET /api/config                           | 200  | —                  | 145 ms    |
+| POST /api/lumi, greeting                  | 503  | GEMINI_UNAVAILABLE | 24,213 ms |
+| POST /api/lumi, CeraVe catalogue question | 503  | GEMINI_UNAVAILABLE | 24,480 ms |
 
 Evidence: preview build `dpl_4Y33i13a29cYHiU924fCwdGg4r1i`, commit `e71576e`, marker `GLOWLAB_PUBLIC_LUMI_PROBE`. Failure request IDs: `786393ab-9b26-4738-b7e9-f83390e3163d` and `a1ff454d-8f44-4802-ab89-2704e6c6da18`.
 

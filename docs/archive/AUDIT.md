@@ -1,3 +1,5 @@
+> **Historical implementation record.** This is not the current project status. Start with the [current README](../../README.md), [architecture](../architecture.md) and [workflow audit](../workflows.md). Later deployments and database configuration may supersede statements below.
+
 # Repository audit — 2026-11-13
 
 Rollback: `rollback/pre-customer-upgrade-9857747`, commit

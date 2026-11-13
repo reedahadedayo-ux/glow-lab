@@ -1,3 +1,5 @@
+> **Historical implementation record.** This is not the current project status. Start with the [current README](../../README.md), [architecture](../architecture.md) and [workflow audit](../workflows.md). Later deployments and database configuration may supersede statements below.
+
 # Architecture, API and database contract
 
 **Current live schema and migration versions:** see LIVE-INTEGRATION.md and the complete
@@ -50,16 +52,16 @@ if supplied by the frontend. Errors: 400 validation, 403 identity/origin, 404 un
 order, 409 stock/idempotency conflict, 429 request/provider limit, 502 malformed AI output,
 503 missing integration/database/provider unavailable.
 
-| Method | Route | Input / output |
-|---|---|---|
-| GET | `/api/config` | Nonsecret readiness flags, storage mode, simulated=true |
-| GET | `/api/products` | Public catalogue only; names, real demo prices, image filenames, availability |
-| GET | `/api/policies` | Published records `{slug,title,content}` |
-| POST | `/api/checkout` | `{customer:{name,email,phone,address,city,instructions?}, items:[{productId,quantity}], idempotencyKey:uuid}` → `{order}` |
-| POST | `/api/orders/lookup` | `{reference,email}` + owner cookie → `{order}` |
-| POST | `/api/support` | `{name,email,issue,orderReference?,priority?,idempotencyKey:uuid}` → `{ticket}` |
-| POST | `/api/support/confirm` | Signed `{token,historyToken?}` + owner cookie → persisted `{ticket,historyToken?}` |
-| POST | `/api/lumi` | `{message,historyToken?}` → `{text,products,routine,ticket,historyToken}` |
+| Method | Route                  | Input / output                                                                                                            |
+| ------ | ---------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/api/config`          | Nonsecret readiness flags, storage mode, simulated=true                                                                   |
+| GET    | `/api/products`        | Public catalogue only; names, real demo prices, image filenames, availability                                             |
+| GET    | `/api/policies`        | Published records `{slug,title,content}`                                                                                  |
+| POST   | `/api/checkout`        | `{customer:{name,email,phone,address,city,instructions?}, items:[{productId,quantity}], idempotencyKey:uuid}` → `{order}` |
+| POST   | `/api/orders/lookup`   | `{reference,email}` + owner cookie → `{order}`                                                                            |
+| POST   | `/api/support`         | `{name,email,issue,orderReference?,priority?,idempotencyKey:uuid}` → `{ticket}`                                           |
+| POST   | `/api/support/confirm` | Signed `{token,historyToken?}` + owner cookie → persisted `{ticket,historyToken?}`                                        |
+| POST   | `/api/lumi`            | `{message,historyToken?}` → `{text,products,routine,ticket,historyToken}`                                                 |
 
 There are deliberately **no seller/admin endpoints**. Do not expose service-role queries as
 public APIs when connecting future apps. No frontend can list orders or list support tickets.
@@ -116,14 +118,14 @@ cards/totals/tool actions are server-grounded; live adversarial text evaluation 
 `glowlab` is the deployed application schema in the new project explicitly authorized by the
 user. The initial live audit found no application tables. The base and additive migrations create:
 
-| Table | Key fields / relationships |
-|---|---|
-| categories | `name` PK, timestamp |
-| products | existing text `id` PK, name/brand/description/price/image, `category` FK, skin_type, ingredients JSON, usage, details_verified, available, nullable stock, timestamps |
-| store_policies | slug PK, title/content/published, timestamps |
-| orders | UUID PK, unique reference, private owner_hash, UUID retry key + fingerprint, customer JSON (name/email/phone/address/city/instructions), generated customer/delivery projections, subtotal, total, delivery_fee and generated shipping_fee, currency, independent payment/order/fulfillment statuses, timestamps |
-| order_items | UUID PK, order_id FK, product_id FK, product_name/unit_price snapshots, quantity, generated line_total; unique order/product |
-| support_tickets | unique ID, private owner_hash, UUID retry key, customer_name/email, issue, optional order_reference FK, priority/status, timestamps |
+| Table           | Key fields / relationships                                                                                                                                                                                                                                                                                       |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| categories      | `name` PK, timestamp                                                                                                                                                                                                                                                                                             |
+| products        | existing text `id` PK, name/brand/description/price/image, `category` FK, skin_type, ingredients JSON, usage, details_verified, available, nullable stock, timestamps                                                                                                                                            |
+| store_policies  | slug PK, title/content/published, timestamps                                                                                                                                                                                                                                                                     |
+| orders          | UUID PK, unique reference, private owner_hash, UUID retry key + fingerprint, customer JSON (name/email/phone/address/city/instructions), generated customer/delivery projections, subtotal, total, delivery_fee and generated shipping_fee, currency, independent payment/order/fulfillment statuses, timestamps |
+| order_items     | UUID PK, order_id FK, product_id FK, product_name/unit_price snapshots, quantity, generated line_total; unique order/product                                                                                                                                                                                     |
+| support_tickets | unique ID, private owner_hash, UUID retry key, customer_name/email, issue, optional order_reference FK, priority/status, timestamps                                                                                                                                                                              |
 
 Guest customer/delivery data lives in private order snapshots, rather than duplicating an
 unknown existing customer table. No login/account model was invented. Carts persist locally;
