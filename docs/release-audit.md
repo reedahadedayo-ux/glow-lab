@@ -65,7 +65,7 @@ The sanitised JSON parses and regression tests pass; actual Make import/rebindin
 ## Security findings and resolutions
 
 - Raw blueprint privileged credential excluded; variable values/bindings/private URLs/account metadata removed in the public template. **Rotation/exposure review remains owner-controlled**, not silently performed.
-- All-local-ref heuristic scan: 128 tracked files and 174 pre-final historical blobs, zero findings. Offline dedicated scan: 15 current-tree flags reviewed as test canaries/documentation/commit-deployment IDs; 26 historical snapshots yielded 84 test-canary flags, no confirmed credential. Source/history scans and redaction tests distinguish test canaries from credentials. New scanner option includes all locally available refs; external GitHub artifacts still need separate review.
+- All-local-ref heuristic scans: 128 tracked files, zero findings before and after the code commit (174 pre-final historical blobs, then 204). Offline dedicated scan: 16 current-tree flags reviewed as test canaries/documentation/commit-deployment IDs; 26 historical snapshots yielded 84 test-canary flags, no confirmed credential. Source/history scans and redaction tests distinguish test canaries from credentials. New scanner option includes all locally available refs; external GitHub artifacts still need separate review.
 - Live Supabase: six tables RLS-enabled, no anon/authenticated commerce grants, invoker RPCs with empty search paths and service-role execute. Backend owner checks remain essential.
 - Signed history is not encrypted, rate limits are per-process and guest recovery is limited. These are documented design boundaries.
 - Four distinct author/committer email identities were observed, two not GitHub-noreply. No values reproduced. Keep history unchanged until the owner decides on privacy.
@@ -73,7 +73,7 @@ The sanitised JSON parses and regression tests pass; actual Make import/rebindin
 
 ## Build and deployment boundaries
 
-Local test/build/format/audit results are listed in [testing](testing.md). The code probe previews reached READY, and actual provider calls were verified via deliberate safe build diagnostics. Final pinned-runtime packaging is checked separately in the final handoff; no production promotion is implied.
+Local test/build/format/audit results are listed in [testing](testing.md). The code probe previews reached READY, and actual provider calls were verified via deliberate safe build diagnostics. Pinned-runtime preview `dpl_Cjsnk44MMMSiAbDiVvqEQstLU4TN` for code commit `e00444a` reached **READY/STAGED**. Logs explicitly confirm Node changed from 26.x to **22.x**, 139 packages installed and build completed. Provider probes were disabled for that build. This verifies packaging, not deployed checkout; no production promotion is implied.
 
 The environment inventory did not show shared database/session configuration for this branch. A READY static/API package does not establish a working deployed checkout. Configure approved staging variables privately for further end-to-end review. Production's older Gemini model override also needs review against the tested fallback before rollout. Existing protected probe deployments retain environment snapshots after project-scope restoration.
 

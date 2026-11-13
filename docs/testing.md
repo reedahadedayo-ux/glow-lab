@@ -36,7 +36,7 @@ The initial Gemini fallback attempt used the inherited `gemini-2.5-flash` defaul
 
 The second Groq catalogue probe did run `search_products` and return text, but did **not** include the requested target ID/price in returned product metadata. The first probe did. This demonstrates why tool execution alone does not certify answer relevance or every live shopping interaction. The probe's generic `ok` flag means text/history returned; it is not an accuracy score. This limitation is retained in the evidence JSON rather than hidden.
 
-The first preview probes ran with Vercel-selected Node 26 because the inherited engine range was `>=22`. The source/lockfile are now pinned to **22.x**, matching local tests. A final build verifies packaging under the pinned runtime; provider availability claims refer to the explicit probe deployments above, not a full production release.
+The first preview probes ran with Vercel-selected Node 26 because the inherited engine range was `>=22`. The source/lockfile are now pinned to **22.x**, matching local tests. Pinned-runtime preview `dpl_Cjsnk44MMMSiAbDiVvqEQstLU4TN` for code commit `e00444a` reached READY/STAGED; logs confirm **22.x**, 139 packages installed and successful build. Probes were disabled. Provider availability claims refer to the explicit probe deployments above, not a full production release.
 
 Temporary Groq preview scope was approved by the owner, applied without reading/changing the secret value, and restored to production-only. Provider probe flag is now `0`. Existing protected probe deployments retain deployment-time environment snapshots. No SSO bypass, production promotion, database mutation or email send occurred.
 
