@@ -8,6 +8,8 @@
 - Full 22-commit ancestor history was fetched before review; no history rewrite, root rename or destructive reset was performed.
 - `gh repo create ... --private` was attempted, but GitHub returned `Resource not accessible by integration (createRepository)`. Existing repository authentication works; no new remote was added by the failed operation.
 
+The prepared documentation branch has been **successfully pushed to the existing private repository**. [Review the branch](https://github.com/reedahadedayo-ux/glow-lab/tree/arena/7e7ec798-glow-lab). `main` was not merged or changed. The new repository remains blocked; Vercel was not relinked and no production promotion was requested.
+
 ## Owner action to unblock the preferred repository
 
 Create an **empty private** repository named `glowlab-ecommerce-platform` in the `reedahadedayo-ux` account, without starter README/licence commits, or reconnect GitHub in Arena with suitable repository-creation permissions. Do not share credentials in chat.

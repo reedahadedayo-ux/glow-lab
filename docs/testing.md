@@ -21,7 +21,7 @@
 | Make scenario/email tests            | **Not performed / blocked by missing scenario access/export.**                                                                   | No claim of line-item email, inbox placement, retry safety or status update.                                     |
 | Repository creation                  | **Blocked** by GitHub integration permission (`createRepository`).                                                               | Authentication to the existing repository succeeds. Preferred new repository does not exist from this operation. |
 
-The final prepared tree passed the publication helper (114 tracked files / 133 historical blobs / zero findings), all 79 local Markdown targets/fragments, and staged whitespace checks. The dedicated scanner still flagged only the same five test canaries. A final re-run of the 40 automated tests, build and formatter also passed. The inactive CI template is saved at `docs/ci-workflow.example.yml`. GitHub rejected activation because the integration lacks `workflows` permission; no remote Actions success is claimed.
+The final prepared tree passed the publication helper (114 tracked files / 161 committed historical blobs / zero findings), all 80 local Markdown targets/fragments, and staged whitespace checks. The dedicated scanner still flagged only the same five test canaries. A final re-run of the 40 automated tests, build and formatter also passed. The inactive CI template is saved at `docs/ci-workflow.example.yml`. GitHub rejected activation because the integration lacks `workflows` permission; no remote Actions success is claimed.
 
 ## Automated suite coverage
 
