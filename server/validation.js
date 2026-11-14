@@ -10,8 +10,11 @@ const text = (min, max) => z.string().trim().min(min).max(max);
 export const customerSchema = z.object({
   name: text(2, 100),
   email: z
-    .email()
+    .string()
+    .trim()
+    .toLowerCase()
     .max(254)
+    .pipe(z.email())
     .transform((s) => s.toLowerCase()),
   phone: text(7, 30).regex(/^\+?[\d ()-]+$/),
   address: text(5, 300),

@@ -1,3 +1,4 @@
+import { withDeadline } from "./request-deadline.js";
 import { GoogleGenAI } from "@google/genai";
 import { AppError } from "./validation.js";
 import { createGroqClient, ProviderFailure } from "./groq.js";
@@ -5,7 +6,8 @@ import { generateWithRecovery } from "./gemini-request.js";
 
 export const geminiModel = (env = process.env) =>
   env.GEMINI_MODEL || "gemini-3.1-flash-lite";
-export const LLM_REQUEST_BUDGET_MS = 90000;
+export const LLM_REQUEST_BUDGET_MS = 35000;
+export const GROQ_ATTEMPT_MS = 8000;
 
 // One router per assistant request. Once failed over, stay on Gemini for later rounds.
 // Only generation is repeated: tool execution and UI delivery stay outside this layer.
@@ -17,6 +19,7 @@ export function createGenerationRouter({
   deadline,
 }) {
   let fallback = false;
+  let started = Date.now();
   const primary = groqClient || createGroqClient(env);
   const report = (provider, outcome, status = 0) => {
     const event = {
@@ -24,23 +27,31 @@ export function createGenerationRouter({
       provider,
       outcome,
       upstreamStatus: Number.isInteger(status) ? status : 0,
+      durationMs: Date.now() - started,
     };
     // Observability is allowlisted, never error.message, prompt, tool arguments or credentials.
     if (observeProvider) observeProvider(event);
     else console.info(JSON.stringify(event));
   };
   return async (input) => {
+    started = Date.now();
     if (!fallback) {
       try {
         const remaining = deadline - Date.now();
         if (remaining <= 0) throw new ProviderFailure(0);
-        const response = await primary.models.generateContent({
-          ...input,
-          config: {
-            ...input.config,
-            httpOptions: { timeout: Math.min(20000, remaining) },
-          },
-        });
+        const timeout = Math.min(GROQ_ATTEMPT_MS, remaining);
+        const response = await withDeadline(
+          (abortSignal) =>
+            primary.models.generateContent({
+              ...input,
+              config: {
+                ...input.config,
+                abortSignal,
+                httpOptions: { timeout },
+              },
+            }),
+          timeout,
+        );
         report("groq", "success");
         return response;
       } catch (error) {
@@ -49,6 +60,7 @@ export function createGenerationRouter({
       }
     }
     try {
+      started = Date.now();
       if (!env.GEMINI_API_KEY && !modelClient) throw new ProviderFailure(503);
       const ai = modelClient || new GoogleGenAI({ apiKey: env.GEMINI_API_KEY });
       const response = await generateWithRecovery(
@@ -70,7 +82,9 @@ export function createGenerationRouter({
               ? "GEMINI_MODEL"
               : status === 400
                 ? "GEMINI_REQUEST"
-                : "LLM_UNAVAILABLE";
+                : ["TimeoutError", "AbortError"].includes(error.name)
+                  ? "LLM_TIMEOUT"
+                  : "LLM_UNAVAILABLE";
       const failure = new AppError(
         status === 429 ? 429 : 503,
         "Lumi is busy or temporarily unavailable. Please try again shortly. You can still browse products, view your cart or use Contact. No action has been confirmed.",

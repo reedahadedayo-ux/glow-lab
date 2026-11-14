@@ -22,7 +22,7 @@ I built GlowLab to explore both sides: a coherent customer journey and a backend
 | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Responsive storefront                | Nine pages, twelve preserved products, search/category filters and product details; desktop/tablet/mobile browser journeys tested. Unknown ingredients, size and directions are labelled, not invented.                                                                      |
 | Cart and simulated checkout          | Persistent cart; quantity/removal; validated checkout; authoritative pricing; atomic order/item snapshots and owner-scoped idempotent retries. Real local API/storage/browser tests pass.                                                                                    |
-| Private Supabase records             | Six RLS-enabled commerce tables, backend-only service role and guest-session-scoped order lookup. Live schema/grants inspected read-only; no fresh production order was created.                                                                                             |
+| Private Supabase records             | Six RLS-enabled commerce tables, backend-only service role and reference/email-verified status lookup with owner-bound full receipts. Live schema/grants inspected read-only; no fresh production order was created.                                                                                             |
 | Lumi: Groq primary → Gemini fallback | Implemented and **real-provider tested on a Vercel preview-build host**. Groq `openai/gpt-oss-20b` generated replies and selected a catalogue tool. An injected Groq outage produced a real Gemini `gemini-3.1-flash-lite` response. [Evidence and limits](docs/testing.md). |
 | Model-directed tools                 | Catalogue search, basic routine selection, published policy, private order lookup and two-phase support requests. Same validation, ownership and approval boundaries for both providers.                                                                                     |
 | Make acknowledgement                 | **Owner reports a successful email test.** Supplied v1 blueprint inspected: webhook → claim → retrieve order/items → aggregate lines → Gmail → status update. [Actual modules, safeguards and reconciliation findings](docs/workflows.md).                                   |
@@ -67,7 +67,7 @@ The Make line describes the inspected blueprint and owner-reported test, not a f
 
 Five tools: `search_products`, `build_skincare_routine`, `get_store_policy`, `lookup_order`, `create_support_ticket`. Routine selection uses catalogue availability, budget and metadata—not a diagnosis or clinical suitability guarantee. Signed history protects integrity but is **not encrypted**. Messages and relevant context may reach Groq and Google on fallback. Do not submit sensitive medical/payment information.
 
-Groq attempts are capped at 20 seconds. Gemini generation retains one bounded transient retry; all rounds share a 90-second generation deadline. Tool I/O/serverless limits remain separate constraints. Only allowlisted provider/outcome/status diagnostics are logged. [Provider adapter details](docs/architecture.md#lumi-and-tool-boundaries).
+Groq and Gemini attempts are capped at 8 seconds. Gemini generation retains one bounded transient retry with hidden SDK retries disabled; the whole assistant request has a 35-second wall-clock limit. The browser stops waiting after 40 seconds. Only allowlisted provider/outcome/status/duration diagnostics are logged. [Provider adapter details](docs/architecture.md#lumi-and-tool-boundaries).
 
 ## Checkout and order storage
 
@@ -76,7 +76,7 @@ Groq attempts are capped at 20 seconds. Gemini generation retains one bounded tr
 - `create_demo_order` saves an order, item snapshots and tracked stock change atomically. Identical owner-bound retry keys return the saved order; changed payloads conflict.
 - Customer/delivery JSON and generated queryable projections live on `glowlab.orders`; purchased names/prices/quantities live in `glowlab.order_items`.
 - `payment_status=paid` plus `payment_method=simulated` means simulation complete, not a real charge. `order_status` and `fulfillment_status` remain independent.
-- Order lookup requires the originating guest browser, reference and email. No customer account, seller dashboard or email-only recovery is implied.
+- Limited order status lookup requires the complete reference and matching checkout email, from any browser. Full receipts and order-linked support remain bound to the originating guest browser. Email alone never unlocks an order. No customer account or seller dashboard is implied.
 
 ## Make workflow and sanitised blueprint
 
@@ -169,3 +169,7 @@ glowlab-skincare/       Preserved legacy redirect pages/assets
 ```
 
 The separate portfolio website was not changed. The [case study](docs/portfolio-case-study.md) is ready to adapt without invented performance, revenue or customer outcomes.
+
+## Reliability repair and retailer audit
+
+See [the current repair/audit report](docs/reliability-and-retailer-audit.md) for reproduced failures, security boundaries, latency evidence, executed tests, Skin Cupid comparison and staging limitations. New reliability tests: `npm run test:browser:reliability`; local synthetic benchmark: `node scripts/benchmark-reliability.mjs`. This repair is not automatically deployed.

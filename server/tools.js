@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { AppError, parse, ticketSchema } from "./validation.js";
 import { publicProduct } from "./catalogue.js";
+import { verifyOrder } from "./order-lookup.js";
 import { publicPolicy } from "./policy-copy.js";
 const str = { type: "STRING" };
 export const declarations = [
@@ -17,7 +18,7 @@ export const declarations = [
   {
     name: "lookup_order",
     description:
-      "Look up an order using its reference AND checkout email. Access also requires the originating browser session, independently enforced by the server. Never reveal any other order.",
+      "Verify an order using its complete reference AND checkout email. Works across browser sessions. Server validation and rate limiting apply. Returns only verified order status and totals, never contact details.",
     parameters: {
       type: "OBJECT",
       properties: { reference: str, email: str },
@@ -68,7 +69,7 @@ export const declarations = [
 export async function executeTool(
   name,
   args,
-  { store, owner, signer, approval },
+  { store, owner, signer, approval, lookupOrder },
 ) {
   switch (name) {
     case "search_products": {
@@ -97,34 +98,15 @@ export async function executeTool(
       return { products };
     }
     case "lookup_order": {
-      const a = parse(
-        z.object({
-          reference: z.string().trim().min(1).max(80),
-          email: z.email().max(254),
-        }),
-        args,
-      );
-      const o = await store.order(owner, a.reference, a.email);
-      if (!o)
-        return {
-          error:
-            "Order not found or could not be verified. Use the browser that placed the order and the checkout email. Email alone does not establish identity.",
-        };
+      const order = await (lookupOrder
+        ? lookupOrder(args)
+        : verifyOrder(store, args));
       return {
-        reference: o.reference,
-        order_status: o.order_status,
-        fulfillment_status: o.fulfillment_status,
-        subtotal: o.subtotal,
-        shipping_fee: o.shipping_fee,
-        payment_status: o.payment_status,
-        payment_method: o.payment_method,
-        total: o.total,
-        currency: o.currency,
-        items: o.items,
-        created_at: o.created_at,
+        ...order,
         note: "Demo order; no physical dispatch or real charge.",
       };
     }
+
     case "get_store_policy": {
       const a = parse(z.object({ topic: z.string().max(100) }), args);
       const policies = (await store.policies()).map(publicPolicy);

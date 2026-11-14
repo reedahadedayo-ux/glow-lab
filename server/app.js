@@ -10,6 +10,11 @@ import { publicProduct } from "./catalogue.js";
 import { publicPolicy } from "./policy-copy.js";
 import { respond } from "./lumi.js";
 import { redactSecrets } from "./secret-safety.js";
+import {
+  verifyOrder,
+  createLookupGuard,
+  orderLookupSchema,
+} from "./order-lookup.js";
 import { executeTool } from "./tools.js";
 export function createApp({
   store,
@@ -21,6 +26,11 @@ export function createApp({
   observeProvider,
 } = {}) {
   const app = express();
+  const guardLookup = createLookupGuard();
+  const lookupFor = (req) => async (input) => {
+    guardLookup(req.ip);
+    return verifyOrder(requireStore(), input);
+  };
   const signer = makeSigner(secret);
   if (env.VERCEL) app.set("trust proxy", 1);
   app.disable("x-powered-by");
@@ -190,34 +200,28 @@ export function createApp({
       res.status(201).json({ order });
     },
   );
-  app.post(
-    "/api/orders/lookup",
-    rateLimit({
-      windowMs: 60000,
-      limit: 10,
-      message: { error: "Too many requests. Wait a minute and try again." },
-    }),
-    async (req, res) => {
-      const input = parse(
-        z.object({
-          reference: z.string().trim().min(1).max(80),
-          email: z.email().max(254),
-        }),
-        req.body,
+  // Full checkout receipt remains owner-bound. Cross-session status lookup below
+  // cannot disclose checkout contact details or delivery addresses.
+  app.post("/api/orders/confirmation", async (req, res) => {
+    guardLookup(req.ip);
+    const input = parse(orderLookupSchema, req.body);
+    const order = await requireStore().order(
+      req.owner,
+      input.reference,
+      input.email,
+    );
+    if (!order)
+      throw new AppError(
+        404,
+        "Full confirmation is unavailable in this session. Use order status lookup on Contact.",
+        "ORDER_NOT_VERIFIED",
       );
-      const order = await requireStore().order(
-        req.owner,
-        input.reference,
-        input.email,
-      );
-      if (!order)
-        throw new AppError(
-          404,
-          "Order not found or could not be verified. Use the browser that placed it and the checkout email.",
-        );
-      res.json({ order });
-    },
-  );
+    res.json({ order });
+  });
+  app.post("/api/orders/lookup", async (req, res) => {
+    const order = await lookupFor(req)(req.body);
+    res.json({ order });
+  });
   app.post(
     "/api/support",
     rateLimit({
@@ -306,6 +310,7 @@ export function createApp({
           observeTool,
           groqClient,
           observeProvider,
+          lookupOrder: lookupFor(req),
         }),
       );
     },
@@ -351,6 +356,7 @@ export function createApp({
   app.use((error, _req, res, _next) => {
     const status = error.status || 500;
     const requestId = res.locals.requestId;
+    if (error.code === "ORDER_LOOKUP_LIMIT") res.set("Retry-After", "60");
     if (error.diagnostic)
       console.error(
         JSON.stringify(redactSecrets({ ...error.diagnostic, requestId }, env)),

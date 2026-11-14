@@ -1,3 +1,4 @@
+import { withDeadline } from "./request-deadline.js";
 import { systemInstruction } from "./lumi-system-prompt.js";
 export { systemInstruction } from "./lumi-system-prompt.js";
 import { declarations, executeTool } from "./tools.js";
@@ -19,7 +20,24 @@ const stable = (v) =>
         : v,
   );
 
-export async function respond({
+export async function respond(options) {
+  try {
+    return await withDeadline(
+      () => respondWithinBudget(options),
+      LLM_REQUEST_BUDGET_MS,
+    );
+  } catch (error) {
+    if (error.name === "TimeoutError")
+      throw new AppError(
+        504,
+        "Lumi took too long to respond. Please retry or use the order lookup on Contact. No action has been confirmed.",
+        "LLM_TIMEOUT",
+      );
+    throw error;
+  }
+}
+
+async function respondWithinBudget({
   message,
   historyToken,
   store,
@@ -30,6 +48,7 @@ export async function respond({
   observeTool,
   groqClient,
   observeProvider,
+  lookupOrder,
 }) {
   if (!env.GROQ_API_KEY && !groqClient && !env.GEMINI_API_KEY && !modelClient)
     throw new AppError(
@@ -47,15 +66,30 @@ export async function respond({
     contents = data.contents;
   }
   contents.push({ role: "user", parts: [{ text: message }] });
+  // Collapse repeated reads within one message, not across customers or checkouts.
+  const requestStore = Object.create(store);
+  for (const method of ["products", "policies"]) {
+    let cached;
+    requestStore[method] = () => (cached ||= store[method]());
+  }
   const products = new Map();
   let routine = null;
   let ticket = null;
+  let order = null;
+  let providerUsed = null;
+  let fallbackUsed = false;
+  const toolFailures = [];
   const deadline = Date.now() + LLM_REQUEST_BUDGET_MS;
   const generate = createGenerationRouter({
     env,
     modelClient,
     groqClient,
-    observeProvider,
+    observeProvider: (event) => {
+      if (event.outcome === "success") providerUsed = event.provider;
+      if (event.outcome === "fallback") fallbackUsed = true;
+      if (observeProvider) observeProvider(event);
+      else console.info(JSON.stringify(event));
+    },
     deadline,
   });
   const completedTools = new Map();
@@ -76,10 +110,11 @@ export async function respond({
         throw new AppError(
           502,
           "Lumi returned an empty response. Please try again.",
+          "LLM_EMPTY_RESPONSE",
         );
       contents.push({ role: "model", parts: [{ text }] });
       // Keep whole user/model/tool turns together. Server-signed history cannot be forged by clients.
-      while (contents.length > 24 || JSON.stringify(contents).length > 48000) {
+      while (contents.length > 24 || JSON.stringify(contents).length > 24000) {
         let next = contents.findIndex(
           (c, i) => i > 0 && c.role === "user" && c.parts?.some((p) => p.text),
         );
@@ -91,6 +126,10 @@ export async function respond({
         products: [...products.values()],
         routine,
         ticket,
+        order,
+        provider: providerUsed,
+        fallbackUsed,
+        toolFailures,
         historyToken: signer.seal({
           kind: "history",
           owner,
@@ -116,14 +155,43 @@ export async function respond({
       const cached = completedTools.has(cacheKey);
       let result = completedTools.get(cacheKey);
       if (!cached) {
+        const started = Date.now();
         try {
-          result = await executeTool(call.name, call.args || {}, {
-            store,
-            owner,
-            signer,
-          });
+          result = await withDeadline(
+            () =>
+              executeTool(call.name, call.args || {}, {
+                store: requestStore,
+                owner,
+                signer,
+                lookupOrder,
+              }),
+            Math.min(10000, deadline - Date.now()),
+          );
+          if (call.name === "lookup_order") order = { ...result };
+          if (observeTool)
+            observeTool({
+              name: call.name,
+              durationMs: Date.now() - started,
+              success: !result.error,
+              productIds: (result.products || []).map((p) => p.id),
+            });
         } catch (e) {
+          if (observeTool)
+            observeTool({
+              name: call.name,
+              durationMs: Date.now() - started,
+              success: false,
+              productIds: [],
+            });
+          // A failed verification/database operation must never become a guessed
+          // natural-language success. Preserve classified, sanitized API errors.
+          if (call.name === "lookup_order") throw e;
+          toolFailures.push({
+            name: call.name,
+            code: e instanceof AppError ? e.code : "TOOL_FAILED",
+          });
           result = {
+            code: e instanceof AppError ? e.code : "TOOL_FAILED",
             error:
               e instanceof AppError
                 ? e.message
@@ -132,12 +200,6 @@ export async function respond({
         }
         completedTools.set(cacheKey, result);
       }
-      if (observeTool && !cached)
-        observeTool({
-          name: call.name,
-          success: !result.error,
-          productIds: (result.products || []).map((p) => p.id),
-        });
       result = redactSecrets(result, env);
       for (const p of result.products || []) products.set(p.id, p);
       if (result.routine) routine = result.routine;
@@ -158,5 +220,6 @@ export async function respond({
   throw new AppError(
     502,
     "Lumi could not finish this request. Please ask a simpler question.",
+    "LLM_STEP_LIMIT",
   );
 }

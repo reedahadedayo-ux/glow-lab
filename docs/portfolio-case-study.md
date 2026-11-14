@@ -36,7 +36,7 @@ flowchart LR
     Make --> Gmail[Gmail]
 ```
 
-The service-role and AI keys remain on the server. Customer order access is scoped to the guest browser that placed the order, reference and checkout email. Knowing another person's email is not enough to retrieve their order. This is a guest flow, not a full account/recovery system.
+The service-role and AI keys remain on the server. Limited order status lookup verifies the full reference and checkout email from any browser; full checkout receipts remain scoped to the original guest browser. Knowing another person's email is not enough to retrieve their order. This is a guest flow, not a full account/recovery system.
 
 ## Lumi: useful assistance with accountable actions
 
@@ -95,3 +95,7 @@ Before public visibility, confirm image permissions, choose a code licence, reso
 ## What the project demonstrates
 
 GlowLab demonstrates the engineering behind an AI-assisted customer journey: validated data, private records, explicit approvals, transactional writes, provider fallback and automation evidence. Its value as a portfolio project is not that every operational edge is finished—it is that the implemented behaviour and remaining boundaries can be explained and tested honestly.
+
+## Subsequent reliability audit
+
+A later local repair reproduced the original cross-session lookup restriction and email-whitespace failures, separated limited status lookup from full receipts, bounded provider waits and added retry/timeout tests. These changes are not a claim of a production rollout or measured live-provider speedup. See the [repair and retailer audit](reliability-and-retailer-audit.md).

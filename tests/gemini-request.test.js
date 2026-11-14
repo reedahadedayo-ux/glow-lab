@@ -26,8 +26,12 @@ test("transient 502/503/504 generation errors retry once with bounded timeout", 
     );
     assert.equal(result.text, "recovered");
     assert.equal(calls, 2);
-    assert.equal(inputs[0].config.httpOptions.timeout, 40000);
-    assert.deepEqual(inputs[0], inputs[1]);
+    assert.equal(inputs[0].config.httpOptions.timeout, 8000);
+    assert.equal(inputs[1].config.httpOptions.retryOptions.attempts, 1);
+    assert.equal(
+      inputs[0].config.httpOptions.timeout,
+      inputs[1].config.httpOptions.timeout,
+    );
   }
 });
 test("auth/model/request/quota errors are not retried; repeated outages stop after two attempts", async () => {

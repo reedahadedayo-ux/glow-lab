@@ -8,7 +8,7 @@
 
 Add to Cart only changes browser storage. Cart review → checkout validates contact/delivery fields and product IDs/quantities → server computes a request fingerprint → `glowlab.create_demo_order` validates authoritative catalogue prices and atomically saves order/item snapshots/stock changes. Identical owner-bound retries return the existing order, not another INSERT. A changed payload under the same key conflicts.
 
-Order lookup requires the originating guest session, reference and email. Payment, order and fulfilment state remain independent; simulated `paid` is not a charge, receipt or shipment. Local API/schema/browser tests cover this; no new production write was authorised or performed.
+Limited order status lookup verifies the complete reference and checkout email from any browser. Full confirmations and order-linked support still require the originating guest session. Payment, order and fulfilment state remain independent; simulated `paid` is not a charge, receipt or shipment. Local API/schema/browser tests cover this; no new production write was authorised or performed.
 
 ## Actual supplied Make v1 sequence
 

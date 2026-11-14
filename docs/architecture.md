@@ -50,12 +50,12 @@ flowchart TB
     DB -. configured INSERT hooks .-> Make[Make: external boundary]
 ```
 
-The browser never receives a Supabase service-role or AI credential. The backend service role deliberately bypasses RLS, so ownership checks must remain on every customer record access path. The assistant cannot choose an owner hash through a tool argument.
+The browser never receives a Supabase service-role or AI credential. The backend service role deliberately bypasses RLS, so explicit verification or ownership checks must remain on every customer record access path. The assistant cannot choose an owner hash through a tool argument.
 
 ## Guest identity, not customer accounts
 
 - A random 256-bit `glowlab_session` cookie is HttpOnly, SameSite=Lax, 30 days and Secure in production.
-- `SESSION_SECRET` derives an HMAC owner hash. Store/order lookup compares that owner plus reference and email. There is no customer login, seller dashboard or email-only recovery.
+- `SESSION_SECRET` derives an HMAC owner hash. Full confirmation and order-linked support compare that owner plus reference and email. Limited status lookup independently verifies reference/email without requiring the original session, projecting no contact information or internal IDs. Direct and AI-tool lookup share an IP attempt budget. There is no customer login, seller dashboard or email-only recovery.
 - Losing the cookie or rotating the secret can lose guest order access. Contact records a request; it does not guarantee identity recovery.
 - Conversation and support tokens are signed, owner-bound and expire. **Signing is integrity, not encryption**: their encoded contents are browser-readable. Do not put payment or sensitive medical information into chat.
 - Browser drafts/transcripts can contain entered personal information. Use fictional data; retention, deletion requests and stronger shared-device protections need further work.
@@ -118,21 +118,21 @@ Fallback: **Gemini `gemini-3.1-flash-lite`** through the official SDK, overridab
 
 `groq.js` converts the existing canonical Gemini-shaped history into OpenAI-compatible system/user/assistant/tool messages. It lowercases tool schema types, creates stable call IDs for legacy history and validates all returned tool argument JSON before any execution. Malformed/empty/truncated Groq output fails over instead of partially executing a response. It never forwards raw provider error bodies.
 
-`llm-router.js` tries Groq first with a 20-second attempt cap. Any provider/configuration/model/rate/network failure switches to Gemini using the **same history and completed tool responses**; subsequent rounds stay on Gemini in that request. User validation/signature/ownership failures occur outside the router and do not trigger another provider call. Per-request identical name/argument tool calls are memoised, so an identical call after failover does not execute twice. This is not notification-email idempotency or a persistent cache across user turns.
+`llm-router.js` tries Groq first with an 8-second attempt cap. Any provider/configuration/model/rate/network failure switches to Gemini using the **same history and completed tool responses**; subsequent rounds stay on Gemini in that request. User validation/signature/ownership failures occur outside the router and do not trigger another provider call. Per-request identical name/argument tool calls are memoised, so an identical call after failover does not execute twice. This is not notification-email idempotency or a persistent cache across user turns.
 
-The backend supplies the same dedicated system instruction, bounded history and five tool declarations to either provider. Gemini uses temperature 0.2/output limit 1400; Groq uses temperature 0.2 and max completion tokens 3000, allowing room for its reasoning budget. Provider payloads are normalised to the same orchestration response. Up to six model rounds are allowed, with at most five tool calls in a round. Whole history turns are trimmed to 24 entries / roughly 48,000 JSON characters where possible and sealed with a two-hour expiry.
+The backend supplies the same dedicated system instruction, bounded history and five tool declarations to either provider. Gemini uses temperature 0.2/output limit 1400; Groq uses temperature 0.2 and max completion tokens 3000, allowing room for its reasoning budget. Provider payloads are normalised to the same orchestration response. Up to six model rounds are allowed, with at most five tool calls in a round. Whole history turns are trimmed to 24 entries / roughly 24,000 JSON characters where possible and sealed with a two-hour expiry.
 
 | Tool                     | Actual behaviour                                                                                                             | Important limit                                                                                                          |
 | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
 | `search_products`        | Reads adapter catalogue; matches query words/category and returns up to 12 public records.                                   | Keyword matching, not embeddings or a medical suitability engine.                                                        |
 | `build_skincare_routine` | Chooses available cleanser/moisturizer/sunscreen using budget and skin-type labels; supplies morning/evening IDs and totals. | Preferences are accepted but not deeply ranked; cheaper fallback may be chosen. Labels are unverified shopping metadata. |
 | `get_store_policy`       | Returns published matching policy records.                                                                                   | Unknown topics remain unknown. Backend legacy wording may differ from narrow storefront copy adaptations.                |
-| `lookup_order`           | Enforces owner/reference/email and returns limited order/item/status data.                                                   | Does not send stored address/phone to the model; no cross-device email-only recovery.                                    |
+| `lookup_order`           | Verifies complete reference/email server-side and returns limited status/totals.                                                   | Works across sessions; never returns stored contact/address or items. Email alone is insufficient.                                    |
 | `create_support_ticket`  | Validates a draft and creates an expiring signed review token; UI confirmation then persists.                                | Draft is not a saved ticket; no verified human agent notification is implied.                                            |
 
 Customer selections, not AI text, add products to cart. The support confirmation route validates owner/history/token and uses the same server tool with verified approval context. Unrecognized tools fail rather than run arbitrary functions.
 
-`generateWithRecovery` retries model generation at most once for transient 502/503/504, abort/timeout or specific network failure. Per-attempt cap is 40 seconds, with a shared 90-second generation deadline; validation/auth/model/quota failures are not retried. Tool execution stays outside this retry, preventing a generation retry from replaying a tool. Tool I/O time and serverless limits still require monitoring. There is no fabricated answer when both providers fail. Allowlisted monitoring records provider/outcome/status only, not prompts, raw errors or credentials.
+`generateWithRecovery` retries model generation at most once for transient 502/503/504, abort/timeout or specific network failure. Per-attempt cap is 8 seconds with SDK retry attempts explicitly set to one, within a 35-second whole-request wall-clock deadline; validation/auth/model/quota failures are not retried. Tool execution stays outside this retry, preventing a generation retry from replaying a tool. Tool I/O time and serverless limits still require monitoring. There is no fabricated answer when both providers fail. Allowlisted monitoring records provider/outcome/status/duration only, not prompts, raw errors or credentials.
 
 ## API contract
 
@@ -145,7 +145,8 @@ All API responses are marked no-store. Mutating endpoints require JSON and allow
 | GET    | `/api/products`, `/api/products/:id` | Public product projection, with unverified ingredients/usage suppressed.                             |
 | GET    | `/api/policies`                      | Published backend policy records.                                                                    |
 | POST   | `/api/checkout`                      | Validate and persist a simulated order.                                                              |
-| POST   | `/api/orders/lookup`                 | Owner/reference/email-scoped saved record.                                                           |
+| POST   | `/api/orders/lookup`                 | Reference/email-verified status/totals, without contact information.                                                           |
+| POST   | `/api/orders/confirmation` | Full saved receipt, still owner/reference/email-bound. |
 | POST   | `/api/support`                       | Persist an explicit customer support request.                                                        |
 | POST   | `/api/support/confirm`               | Persist approved AI-prepared draft.                                                                  |
 | POST   | `/api/lumi`                          | Model response, product/routine suggestions, optional ticket draft and signed history.               |
@@ -157,3 +158,7 @@ Typical errors: 400 validation; 403 ownership/origin; 404 unknown or unverifiabl
 The build copies only public HTML/CSS/JS/images. Express also allowlists served paths; source, migrations and `.env` are not public assets. Vercel rewrites API traffic to one shared handler, retains clean URLs and redirects legacy paths. Node is now pinned to the locally tested 22.x major.
 
 No checkout/order migration, production data change, real charge, mail send or Make scenario/trigger change was performed. The existing Groq secret was temporarily allowed into protected preview with owner approval for live tests, then restored to production-only scope. The separate portfolio website is not part of this checkout.
+
+## Reliability recheck
+
+[Current diagnosis, executed tests and retailer audit](reliability-and-retailer-audit.md). Lookup validation/allowlisting and shared process-local abuse guard are in `server/order-lookup.js`; hard operation deadlines are in `server/request-deadline.js`. Direct order lookup does not call an LLM. Distributed lookup throttling remains required before multi-instance production use.

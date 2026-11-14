@@ -4,4 +4,4 @@ GlowLab is a demonstration storefront. Checkout records simulated orders, not re
 
 The code history and original product catalogue/images have been retained. Product names, brands and marks belong to their respective owners; their presence does not imply endorsement, authenticity certification or a commercial relationship.
 
-Image source/licensing evidence is not included in this repository. Confirm the right to redistribute every image before making the repository public. No open-source licence has been selected automatically; repository visibility alone does not grant a reuse licence. The owner should choose an appropriate code licence separately from any third-party asset permissions.
+The repository owner confirmed image redistribution rights on 13 November 2026. This is an owner attestation; per-image source/licensing evidence is not included in this repository, and permission for others to reuse those images is not inferred. No open-source licence has been selected automatically; repository visibility alone does not grant a reuse licence. The owner should choose an appropriate code licence separately from any third-party asset permissions.

@@ -149,7 +149,12 @@ export function createGroqClient(env, transport = globalThis.fetch) {
                 "Content-Type": "application/json",
               },
               body: JSON.stringify(body),
-              signal: AbortSignal.timeout(input.config.httpOptions.timeout),
+              signal: input.config.abortSignal
+                ? AbortSignal.any([
+                    input.config.abortSignal,
+                    AbortSignal.timeout(input.config.httpOptions.timeout),
+                  ])
+                : AbortSignal.timeout(input.config.httpOptions.timeout),
               redirect: "error",
             },
           );

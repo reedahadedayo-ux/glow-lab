@@ -61,6 +61,44 @@
             with. Add your order reference if your question relates to a
             purchase.
           </p>
+          <section
+            id="order-lookup"
+            class="summary-card"
+            style="margin-top: 24px"
+          >
+            <h2>Check a demo order</h2>
+            <p>
+              Use the complete order reference and checkout email, from any
+              browser. No AI connection is required. Only order status and
+              totals are shown.
+            </p>
+            <form id="orderLookupForm" class="form">
+              <label for="lookupReference"
+                >Order reference<input
+                  class="input"
+                  id="lookupReference"
+                  name="reference"
+                  placeholder="GL-…"
+                  maxlength="80"
+                  required
+                  autocomplete="off"
+              /></label>
+              <label for="lookupEmail"
+                >Checkout email<input
+                  class="input"
+                  id="lookupEmail"
+                  name="email"
+                  type="email"
+                  maxlength="254"
+                  required
+                  autocomplete="email"
+              /></label>
+              <button class="btn btn-secondary" type="submit">
+                Check order status
+              </button>
+              <p id="orderLookupStatus" role="status" aria-live="polite"></p>
+            </form>
+          </section>
           <form
             class="form"
             id="contactForm"

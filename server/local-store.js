@@ -99,6 +99,14 @@ export class LocalStore {
       throw e;
     }
   }
+  async verifiedOrder(reference, email) {
+    const row = this.db
+      .prepare(
+        "SELECT data FROM orders WHERE json_extract(data,'$.reference')=? AND lower(trim(json_extract(data,'$.customer.email')))=?",
+      )
+      .get(reference, email);
+    return row ? JSON.parse(row.data) : null;
+  }
   async order(owner, reference, email) {
     const row = this.db
       .prepare(

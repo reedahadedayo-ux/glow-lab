@@ -66,26 +66,43 @@ cart = cart
   .slice(0, 30);
 let config = {};
 async function api(path, body) {
-  let response;
+  const controller = new AbortController();
+  const timer = setTimeout(
+    () => controller.abort(),
+    path === "lumi" ? 40000 : 15000,
+  );
   try {
-    response = await fetch("/api/" + path, {
+    const response = await fetch("/api/" + path, {
       method: body ? "POST" : "GET",
       credentials: "same-origin",
       headers: body ? { "Content-Type": "application/json" } : {},
       body: body ? JSON.stringify(body) : undefined,
+      signal: controller.signal,
     });
-  } catch {
-    throw new Error(
-      "Connection interrupted. Please retry. We have not confirmed that your request succeeded.",
-    );
+    const result = await response.json();
+    if (!response.ok) {
+      const failure = new Error(
+        result.error || "This request could not be completed.",
+      );
+      failure.code = result.code;
+      throw failure;
+    }
+    return result;
+  } catch (error) {
+    if (controller.signal.aborted)
+      throw new Error(
+        "This request timed out. Please retry. If you submitted checkout, it may have saved: retry without changing the details to reuse the same checkout key.",
+      );
+    if (error instanceof TypeError || error instanceof SyntaxError)
+      throw new Error(
+        "Connection interrupted or an unexpected response was received. Please retry. We have not confirmed that your request succeeded.",
+      );
+    throw error;
+  } finally {
+    clearTimeout(timer);
   }
-  const result = await response.json().catch(() => ({
-    error: "The server returned an unexpected response. Please try again.",
-  }));
-  if (!response.ok)
-    throw new Error(result.error || "This request could not be completed.");
-  return result;
 }
+
 function toast(message) {
   const el = $("#toast");
   if (!el) return;
@@ -294,7 +311,7 @@ async function loadConfirmation() {
   const receipt = storage.get("glowlab.receipt", null, true);
   if (!receipt) {
     el.innerHTML =
-      '<h1>Find your order.</h1><p>Order details stay private. Use the browser that placed the order and your checkout email.</p><form id="recoverOrder" class="form"><label>Order reference<input class="input" name="reference" required maxlength="80"></label><label>Checkout email<input class="input" type="email" name="email" required></label><button class="btn btn-primary">Look up order</button><p class="error" role="alert"></p></form>';
+      '<h1>Find your order.</h1><p>Full checkout details stay private to the original browser. You can check limited order status here or on Contact using the reference and checkout email.</p><form id="recoverOrder" class="form"><label>Order reference<input class="input" name="reference" required maxlength="80"></label><label>Checkout email<input class="input" type="email" name="email" required></label><button class="btn btn-primary">Look up order</button><p class="error" role="alert"></p></form>';
     $("#recoverOrder").addEventListener("submit", async (e) => {
       e.preventDefault();
       const f = e.target;
@@ -313,13 +330,46 @@ async function loadConfirmation() {
     return;
   }
   try {
-    const { order: o } = await api("orders/lookup", receipt);
-    el.innerHTML = `<span class="eyebrow">Order received</span><h1>We’ve received <em>your order.</em></h1><p>Keep your reference below. Payment was simulated: no money was charged and no products will be dispatched.</p><div class="order-reference">${escapeHTML(o.reference)}</div><p class="small">Save this reference. Order lookup requires this browser and your checkout email.</p><div class="summary-card journey-content"><h2>Order confirmation</h2><div class="summary-row"><span>Order status</span><strong>${escapeHTML(window.GlowLabCopy.status(o.order_status))}</strong></div><div class="summary-row"><span>Fulfillment</span><strong>${escapeHTML(window.GlowLabCopy.status(o.fulfillment_status))}</strong></div><div class="summary-row"><span>Payment</span><strong>${escapeHTML(window.GlowLabCopy.payment(o))}</strong></div>${o.items.map((i) => `<div class="summary-row"><span>${escapeHTML(i.product_name)} × ${i.quantity}</span><strong>${money(i.line_total)}</strong></div>`).join("")}<div class="summary-row"><span>Subtotal</span><strong>${money(o.subtotal ?? o.total)}</strong></div><div class="summary-row"><span>Delivery</span><strong>${money(o.shipping_fee ?? o.delivery_fee ?? 0)}</strong></div><div class="summary-row total"><span>Total</span><span>${money(o.total)}</span></div><p class="small">Created ${escapeHTML(new Date(o.created_at).toLocaleString())}. No payment receipt is issued for a simulated payment.</p></div><div style="margin-top:25px;display:flex;gap:16px;flex-wrap:wrap"><button class="btn btn-primary" data-chat-lumi>Ask Lumi about this order</button><a href="products.html" class="btn btn-secondary">Continue exploring</a><a href="contact.html" class="text-link">Report a problem</a></div>`;
+    let o;
+    try {
+      ({ order: o } = await api("orders/confirmation", receipt));
+    } catch (error) {
+      if (error.code !== "ORDER_NOT_VERIFIED") throw error;
+      ({ order: o } = await api("orders/lookup", receipt));
+    }
+    el.innerHTML = `<span class="eyebrow">Order received</span><h1>We’ve received <em>your order.</em></h1><p>Keep your reference below. Payment was simulated: no money was charged and no products will be dispatched.</p><div class="order-reference">${escapeHTML(o.reference)}</div><p class="small">Save this reference and your checkout email. <a href="contact.html#order-lookup">Check order status</a> from any browser; only limited status and totals are shown.</p><div class="summary-card journey-content"><h2>Order confirmation</h2><div class="summary-row"><span>Order status</span><strong>${escapeHTML(window.GlowLabCopy.status(o.order_status))}</strong></div><div class="summary-row"><span>Fulfillment</span><strong>${escapeHTML(window.GlowLabCopy.status(o.fulfillment_status))}</strong></div><div class="summary-row"><span>Payment</span><strong>${escapeHTML(window.GlowLabCopy.payment(o))}</strong></div>${(o.items || []).map((i) => `<div class="summary-row"><span>${escapeHTML(i.product_name)} × ${i.quantity}</span><strong>${money(i.line_total)}</strong></div>`).join("")}<div class="summary-row"><span>Subtotal</span><strong>${money(o.subtotal ?? o.total)}</strong></div><div class="summary-row"><span>Delivery</span><strong>${money(o.shipping_fee ?? o.delivery_fee ?? 0)}</strong></div><div class="summary-row total"><span>Total</span><span>${money(o.total)}</span></div><p class="small">Created ${escapeHTML(new Date(o.created_at).toLocaleString())}. No payment receipt is issued for a simulated payment.</p></div><div style="margin-top:25px;display:flex;gap:16px;flex-wrap:wrap"><button class="btn btn-primary" data-chat-lumi>Ask Lumi about this order</button><a href="products.html" class="btn btn-secondary">Continue exploring</a><a href="contact.html" class="text-link">Report a problem</a></div>`;
   } catch (error) {
     el.innerHTML = `<h1>We couldn’t retrieve your order.</h1><p class="error">${escapeHTML(error.message)}</p><button id="retryConfirmation" class="btn btn-primary">Retry lookup</button>`;
     $("#retryConfirmation").onclick = loadConfirmation;
   }
 }
+function initOrderLookup() {
+  const form = $("#orderLookupForm");
+  if (!form) return;
+  const status = $("#orderLookupStatus");
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const button = form.querySelector("button[type=submit]");
+    if (button.disabled) return;
+    button.disabled = true;
+    form.setAttribute("aria-busy", "true");
+    status.textContent = "Checking your reference and email…";
+    try {
+      const fields = new FormData(form);
+      const { order } = await api("orders/lookup", {
+        reference: fields.get("reference"),
+        email: fields.get("email"),
+      });
+      status.textContent = `Verified order ${order.reference}: ${window.GlowLabCopy.status(order.order_status)}. Fulfillment: ${window.GlowLabCopy.status(order.fulfillment_status)}. Total: ${money(order.total)}. ${window.GlowLabCopy.payment(order)}. This is a demo; no products are dispatched.`;
+    } catch (error) {
+      status.textContent = error.message;
+    } finally {
+      button.disabled = false;
+      form.setAttribute("aria-busy", "false");
+    }
+  });
+}
+
 function initContact() {
   const form = $("#contactForm");
   if (!form) return;
@@ -550,7 +600,12 @@ function initLumi() {
     transcript.push({ role: "user", text: message });
     input.value = "";
     persist();
+    panel.setAttribute("aria-busy", "true");
     const loading = append("assistant", "Lumi is thinking…");
+    const slowTimer = setTimeout(() => {
+      loading.textContent =
+        "This is taking longer than usual. Lumi will time out safely if it cannot finish. For order status, you can also use Contact.";
+    }, 8000);
     loading.setAttribute("role", "status");
     try {
       const result = await api("lumi", {
@@ -560,6 +615,23 @@ function initLumi() {
       historyToken = result.historyToken;
       loading.remove();
       append("assistant", result.text);
+      if (result.provider)
+        append(
+          "assistant",
+          result.fallbackUsed
+            ? "Groq couldn't complete this reply; Gemini answered instead using the same conversation context."
+            : `Response provider: ${result.provider === "groq" ? "Groq" : "Gemini"}.`,
+        );
+      if (result.order)
+        append(
+          "assistant",
+          `Verified order ${result.order.reference}: ${window.GlowLabCopy.status(result.order.order_status)} · ${window.GlowLabCopy.status(result.order.fulfillment_status)} · ${money(result.order.total)}. Demo only: no money charged or products dispatched.`,
+        );
+      if (result.toolFailures?.length)
+        append(
+          "error",
+          "Some store information could not be retrieved. No successful check is confirmed for those operations. Please retry or use Contact.",
+        );
       renderResult(result);
       transcript.push({
         role: "assistant",
@@ -576,6 +648,8 @@ function initLumi() {
       append("error", error.message);
       input.value = message;
     } finally {
+      clearTimeout(slowTimer);
+      panel.setAttribute("aria-busy", "false");
       busy = false;
       send.disabled = false;
       $("#resetLumi").disabled = false;
@@ -714,6 +788,7 @@ function events() {
 }
 document.addEventListener("DOMContentLoaded", async () => {
   events();
+  initOrderLookup();
   for (const form of $$("#checkoutForm,#contactForm"))
     form.addEventListener("submit", (e) => {
       if (form.dataset.ready !== "true") {
@@ -738,6 +813,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   );
   try {
     config = await api("config");
+    initLumi();
     initContact();
     await loadConfirmation();
     if ($("#policyContent")) {
@@ -757,7 +833,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
     const result = await api("products");
     products = result.products;
-    initLumi();
     renderProducts();
     renderCart();
     initCheckout();

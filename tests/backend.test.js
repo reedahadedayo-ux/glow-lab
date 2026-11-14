@@ -118,7 +118,7 @@ test("checkout rejects client prices, payment status, malformed delivery, duplic
       409,
     );
   }));
-test("lookup requires same browser capability and matching email; invalid references are generic", () =>
+test("lookup verifies reference and email across browser sessions; failures are generic", () =>
   withAPI(async ({ request, url }) => {
     const {
       body: { order },
@@ -144,7 +144,7 @@ test("lookup requires same browser capability and matching email; invalid refere
     assert.equal(
       (
         await request("orders/lookup", {
-          reference: "unknown",
+          reference: "GL-UNKNOWN",
           email: customer.email,
         })
       ).status,
@@ -158,7 +158,28 @@ test("lookup requires same browser capability and matching email; invalid refere
         email: customer.email,
       }),
     });
-    assert.equal(stranger.status, 404);
+    assert.equal(stranger.status, 200);
+    const summary = (await stranger.json()).order;
+    assert.equal(summary.customer, undefined);
+    assert.equal(summary.customer_email, undefined);
+  }));
+test("full confirmation preserves owner-bound item receipt; fresh session only gets limited lookup", () =>
+  withAPI(async ({ request }) => {
+    const created = await request("checkout", draft());
+    const input = {
+      reference: created.body.order.reference,
+      email: customer.email,
+    };
+    const receipt = await request("orders/confirmation", input);
+    assert.equal(receipt.status, 200);
+    assert.equal(receipt.body.order.items[0].product_id, "cerave-foaming");
+    const fresh = await request("orders/confirmation", input, { cookie: "" });
+    assert.equal(fresh.status, 404);
+    assert.equal(fresh.body.order, undefined);
+    const limited = await request("orders/lookup", input, { cookie: "" });
+    assert.equal(limited.status, 200);
+    assert.equal(limited.body.order.items, undefined);
+    assert.equal(limited.body.order.customer, undefined);
   }));
 test("support persists and is idempotent; cannot associate another browser order", () =>
   withAPI(async ({ request, url, store }) => {
@@ -295,14 +316,13 @@ test("all five tools return real data; support draft requires explicit confirmat
   assert.equal(draft.confirmation_required, true);
   assert.equal(store.db.prepare("SELECT count(*) n FROM tickets").get().n, 0);
   assert.equal(sign.open(draft.token).owner, "owner");
-  assert.ok(
-    (
-      await executeTool(
-        "lookup_order",
-        { reference: "unknown", email: customer.email },
-        ctx,
-      )
-    ).error,
+  await assert.rejects(
+    executeTool(
+      "lookup_order",
+      { reference: "GL-UNKNOWN", email: customer.email },
+      ctx,
+    ),
+    (error) => error.code === "ORDER_NOT_VERIFIED",
   );
   store.db.close();
 });

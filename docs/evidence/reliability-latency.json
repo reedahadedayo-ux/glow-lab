@@ -1,0 +1,60 @@
+{
+  "kind": "LOCAL_SYNTHETIC_NOT_PRODUCTION_LATENCY",
+  "syntheticProviderDelayPerRoundMs": 80,
+  "summary": {
+    "productQuestionMs": {
+      "samples": [
+        168.49,
+        162.21,
+        162.99,
+        162.82,
+        162.76
+      ],
+      "median": 162.82,
+      "maximum": 168.49
+    },
+    "directLookupMs": {
+      "samples": [
+        1.79,
+        0.5,
+        0.34,
+        0.31,
+        0.5
+      ],
+      "median": 0.5,
+      "maximum": 1.79
+    },
+    "lumiLookupMs": {
+      "samples": [
+        162.65,
+        162.63,
+        162.04,
+        161.81,
+        162.06
+      ],
+      "median": 162.06,
+      "maximum": 162.65
+    }
+  },
+  "generations": 20,
+  "inputBytes": {
+    "minimum": 8140,
+    "maximum": 9028
+  },
+  "note": "SQLite in memory; mocked generation. No external HTTP/DB latency measured. Direct lookup uses zero LLM calls; a successful tool-backed explanation uses two.",
+  "before_repair": {
+    "orderLookup": {
+      "sameSession": true,
+      "freshSession": false,
+      "emailWhitespace": false
+    },
+    "syntheticProviderDelayPerRoundMs": 80,
+    "productToolJourneyMs": 165,
+    "generationRounds": 2,
+    "inputBytesPerRound": [
+      7930,
+      8818
+    ],
+    "notes": "Local SQLite, fictional data, mocked provider. Not live provider or Supabase latency."
+  }
+}

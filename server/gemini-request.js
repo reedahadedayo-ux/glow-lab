@@ -1,6 +1,8 @@
-// Retry only model generation, never tool execution. Keep all rounds within the API's 120s limit.
-export const GEMINI_REQUEST_BUDGET_MS = 90000;
-const MAX_ATTEMPT_MS = 40000;
+import { withDeadline } from "./request-deadline.js";
+// Only generation is retried, never tools. Disable SDK's default five attempts:
+// otherwise two application attempts can multiply hidden network retries.
+export const GEMINI_REQUEST_BUDGET_MS = 35000;
+export const GEMINI_ATTEMPT_MS = 8000;
 export function isTransientGeminiError(error) {
   return (
     [502, 503, 504].includes(error?.status) ||
@@ -20,14 +22,20 @@ export async function generateWithRecovery(
       throw Object.assign(new Error("Gemini request deadline exceeded"), {
         name: "TimeoutError",
       });
+    const timeout = Math.min(GEMINI_ATTEMPT_MS, remaining);
     try {
-      return await ai.models.generateContent({
-        ...input,
-        config: {
-          ...input.config,
-          httpOptions: { timeout: Math.min(MAX_ATTEMPT_MS, remaining) },
-        },
-      });
+      return await withDeadline(
+        (abortSignal) =>
+          ai.models.generateContent({
+            ...input,
+            config: {
+              ...input.config,
+              abortSignal,
+              httpOptions: { timeout, retryOptions: { attempts: 1 } },
+            },
+          }),
+        timeout,
+      );
     } catch (error) {
       if (
         attempt === 1 ||

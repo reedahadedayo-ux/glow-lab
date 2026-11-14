@@ -86,6 +86,21 @@ export class SupabaseStore {
     this.check(error, status, "checkout");
     return data;
   }
+  // Cross-session verification is deliberately separate from owner-bound access.
+  // Projection excludes customer contact/address, internal IDs and all other records.
+  async verifiedOrder(reference, email) {
+    const { data, error, status } = await this.db
+      .from("orders")
+      .select(
+        "reference,order_status,fulfillment_status,payment_status,payment_method,subtotal,shipping_fee,total,currency,created_at",
+      )
+      .eq("reference", reference)
+      .eq("customer->>email", email)
+      .maybeSingle()
+      .retry(false);
+    this.check(error, status, "order_lookup");
+    return data;
+  }
   async order(owner, reference, email) {
     let q = this.db
       .from("orders")
