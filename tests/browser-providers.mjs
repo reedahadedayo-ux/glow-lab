@@ -83,7 +83,7 @@ try {
           ? "Primary transport reply received."
           : scenario === "fallback"
             ? "Fallback transport reply received."
-            : "temporarily unavailable";
+            : "Lumi couldn't complete this reply";
       await page.waitForFunction(
         (value) =>
           [...document.querySelectorAll(".lumi-message")].some((e) =>
@@ -93,13 +93,43 @@ try {
       );
       assert.doesNotMatch(
         await page.locator("#lumiHistory").innerText(),
-        /private upstream|private fallback|not-a-real-key/,
+        /private upstream|private fallback|not-a-real-key|Groq|Gemini|Response provider|timed out/i,
       );
       assert.equal(await page.locator("#lumiInput").isEnabled(), true);
       assert.deepEqual(pageErrors, []);
       assert.equal(events[0].provider, "groq");
       if (scenario !== "primary")
         assert.equal(events.at(-1).provider, "gemini");
+      // Defensive presentation for an API/provider timeout, even if its error copy
+      // contains an internal provider name. This is an injected HTTP response.
+      if (scenario === "unavailable") {
+        await page.route("**/api/lumi", (route) =>
+          route.fulfill({
+            status: 503,
+            json: { code: "LLM_TIMEOUT", error: "Gemini timed out" },
+          }),
+        );
+        await page.locator("#lumiInput").fill("Try again");
+        const timeoutResponse = page.waitForResponse((r) =>
+          r.url().endsWith("/api/lumi"),
+        );
+        await page.locator("#lumiInput").press("Enter");
+        await timeoutResponse;
+        await page.waitForFunction(
+          () =>
+            document.querySelector("#lumiPanel").getAttribute("aria-busy") ===
+            "false",
+        );
+        assert.doesNotMatch(
+          await page.locator("#lumiHistory").innerText(),
+          /Groq|Gemini|Response provider|timed out/i,
+        );
+        assert.equal(
+          await page.locator("#lumiInput").inputValue(),
+          "Try again",
+        );
+        await page.unroute("**/api/lumi");
+      }
       // Retains keyboard-operable close control and fits the touch viewport.
       await page.locator("#closeLumi").focus();
       await page.keyboard.press("Enter");

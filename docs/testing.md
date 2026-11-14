@@ -4,7 +4,17 @@
 
 **Updated 13 November 2026.** Mocked transport tests, live calls, owner testimony and static blueprint evidence are deliberately separate. A successful build is not production readiness.
 
-## Results
+## Latest customer-facing Lumi copy revision — release checks
+
+- `npm test`: **72 pass, 0 fail**, including five prompt-contract tests. These assert the instructions exist, not that a live model always obeys them.
+- Provider browser suite: **3 scenarios pass** at 390px, now asserting that primary/fallback/failure chat history contains no provider names or attribution. An injected `LLM_TIMEOUT` / `Gemini timed out` API response is also shown as a plain-language Lumi failure. Sanitized server-side provider events remain asserted.
+- Reliability browser suite: **8 groups pass**, including browser-deadline recovery with restored input and no automatic resubmission. Build and diff whitespace checks pass.
+- Removed per-response provider/fallback notices, not the published data-processing/privacy disclosure. Groq-primary/Gemini-fallback routing and failure reporting on the server are unchanged. Typed order-verification failures remain explicit.
+- Prompt now requests concise, independently described order/payment/fulfilment states, without invented free shipping, real-payment implications or future dispatch promises.
+- Conversational plain-text instructions disallow Markdown/asterisk formatting and receipt-style field dumps. Prompt checks are not live-model compliance tests. Publication status is recorded in [deployment status](deployment-status.md).
+- The separate Phase 2 plan was not located in current files; no Phase 2 evaluation completion is claimed pending the owner's exact plan.
+
+## Earlier results
 
 | Check                            | Observed result                                                                                                                                                         | Boundary                                                                                                                                                               |
 | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

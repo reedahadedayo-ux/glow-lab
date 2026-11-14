@@ -192,7 +192,7 @@ try {
   );
   assert.match(
     await page.locator(".lumi-message.error").last().textContent(),
-    /timed out/,
+    /Lumi couldn't complete this reply/,
   );
   assert.equal(await page.locator("#lumiInput").inputValue(), "Slow question");
   assert.equal(

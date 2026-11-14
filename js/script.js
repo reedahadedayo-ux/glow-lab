@@ -81,8 +81,14 @@ async function api(path, body) {
     });
     const result = await response.json();
     if (!response.ok) {
+      const providerFailure =
+        path === "lumi" &&
+        (/^(?:GROQ|GEMINI|LLM)_/.test(result.code || "") ||
+          /\b(?:groq|gemini)\b/i.test(result.error || ""));
       const failure = new Error(
-        result.error || "This request could not be completed.",
+        providerFailure
+          ? "Lumi couldn't complete this reply. Please try again shortly. For order status, you can use Contact. No action has been confirmed."
+          : result.error || "This request could not be completed.",
       );
       failure.code = result.code;
       throw failure;
@@ -91,7 +97,9 @@ async function api(path, body) {
   } catch (error) {
     if (controller.signal.aborted)
       throw new Error(
-        "This request timed out. Please retry. If you submitted checkout, it may have saved: retry without changing the details to reuse the same checkout key.",
+        path === "lumi"
+          ? "Lumi couldn't complete this reply. Please try again shortly. For order status, you can use Contact. No action has been confirmed."
+          : "This request timed out. Please retry. If you submitted checkout, it may have saved: retry without changing the details to reuse the same checkout key.",
       );
     if (error instanceof TypeError || error instanceof SyntaxError)
       throw new Error(
@@ -604,7 +612,7 @@ function initLumi() {
     const loading = append("assistant", "Lumi is thinking…");
     const slowTimer = setTimeout(() => {
       loading.textContent =
-        "This is taking longer than usual. Lumi will time out safely if it cannot finish. For order status, you can also use Contact.";
+        "This is taking longer than usual. Please wait a moment. For order status, you can also use Contact.";
     }, 8000);
     loading.setAttribute("role", "status");
     try {
@@ -615,13 +623,6 @@ function initLumi() {
       historyToken = result.historyToken;
       loading.remove();
       append("assistant", result.text);
-      if (result.provider)
-        append(
-          "assistant",
-          result.fallbackUsed
-            ? "Groq couldn't complete this reply; Gemini answered instead using the same conversation context."
-            : `Response provider: ${result.provider === "groq" ? "Groq" : "Gemini"}.`,
-        );
       if (result.order)
         append(
           "assistant",
